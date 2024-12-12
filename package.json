@@ -1,15 +1,24 @@
 {
-  "name": "simple",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "lit-wrapper-sdk",
+  "version": "0.0.1",
+  "author": "Ansh Saxena",
+  "license": "MIT",
+  "description": "A wrapper SDK for Lit Protocol",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anshss/lit-wrapper-sdk.git"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "scripts": {
-    "tester": "node --loader ts-node/esm examples/tester.ts"
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "tester": "tsx examples/tester"
   },
-  "keywords": [],
-  "author": "anshss",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@lit-protocol/auth-helpers": "^7.0.0-alpha.9",
     "@lit-protocol/constants": "^7.0.0-alpha.9",
