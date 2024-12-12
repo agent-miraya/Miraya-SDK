@@ -1,23 +1,23 @@
-import { LitWrapper } from "../lit.js";
+import { LitWrapper } from "lit-wrapper-sdk";
 import "dotenv/config";
 
 const litWrapper = new LitWrapper("datil-dev");
 
-const _litActionCode = async () => {
-    try {
-        const sigShare = await LitActions.ethPersonalSignMessageEcdsa({
-            message: dataToSign,
-            publicKey: pkpPublicKey,
-            sigName,
-        });
-        LitActions.setResponse({ response: sigShare });
-    } catch (error) {
-        LitActions.setResponse({ response: error.message });
-    }
-};
-const litActionCode = `(${_litActionCode.toString()})();`;
-
 async function createKeyAndExecuteAction() {
+    const _litActionCode = async () => {
+        try {
+            const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
+                message: dataToSign,
+                publicKey: pkpPublicKey,
+                sigName,
+            });
+            Lit.Actions.setResponse({ response: sigShare });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    };
+    const litActionCode = `(${_litActionCode.toString()})();`;
+
     const { pkp, ipfsCID } = await litWrapper.createPKPWithLitAction(
         process.env.ETHEREUM_PRIVATE_KEY,
         litActionCode,

@@ -1,4 +1,4 @@
-import { LitWrapper } from "../lit.js";
+import { LitWrapper } from "lit-wrapper-sdk";
 import "dotenv/config";
 
 const litWrapper = new LitWrapper("datil-dev")

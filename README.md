@@ -31,27 +31,29 @@ generateSolanaWallet()
 
 ### 2) Creating a key on EVM and Executing a Lit Action
 
+Create a key, Upload Lit Action to IPFS, Permit on IPFS and Execute the action
+
 ```js
 import { LitWrapper } from "lit-wrapper-sdk";
 import "dotenv/config";
 
 const litWrapper = new LitWrapper("datil-dev");
 
-const _litActionCode = async () => {
-    try {
-        const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
-            message: dataToSign,
-            publicKey: pkpPublicKey,
-            sigName,
-        });
-        Lit.Actions.setResponse({ response: sigShare });
-    } catch (error) {
-        Lit.Actions.setResponse({ response: error.message });
-    }
-};
-const litActionCode = `(${_litActionCode.toString()})();`;
-
 async function createKeyAndExecuteAction() {
+    const _litActionCode = async () => {
+        try {
+            const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
+                message: dataToSign,
+                publicKey: pkpPublicKey,
+                sigName,
+            });
+            Lit.Actions.setResponse({ response: sigShare });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    };
+    const litActionCode = `(${_litActionCode.toString()})();`;
+
     const { pkp, ipfsCID } = await litWrapper.createPKPWithLitAction(
         process.env.ETHEREUM_PRIVATE_KEY,
         litActionCode,
@@ -68,9 +70,10 @@ async function createKeyAndExecuteAction() {
     const response = litWrapper.executeLitAction(usePrivateKey, pkp, ipfsCID, params);
     console.log(response)
 }
-createKeyAndExecuteAction()
 
+createKeyAndExecuteAction()
 ```
+
 ### 3) Testing a Lit Action
 
 Instantly create a Lit Action and test its execution over Lit Network
@@ -128,5 +131,4 @@ async function test() {
     console.log("test result 3", result3);
 }
 test();
-
 ```

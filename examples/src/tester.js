@@ -4,14 +4,14 @@ import "dotenv/config";
 
 const _litActionCode = async () => {
     try {
-        const sigShare = await LitActions.ethPersonalSignMessageEcdsa({
+        const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
             message: dataToSign,
             publicKey: pkpPublicKey,
             sigName,
         });
-        LitActions.setResponse({ response: sigShare });
+        Lit.Actions.setResponse({ response: sigShare });
     } catch (error) {
-        LitActions.setResponse({ response: error.message });
+        Lit.Actions.setResponse({ response: error.message });
     }
 };
 const litActionCode = `(${_litActionCode.toString()})();`;
