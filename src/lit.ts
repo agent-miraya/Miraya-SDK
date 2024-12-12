@@ -296,7 +296,7 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxn(wkResponse: WK, userPrivateKey: string, broadcastTransaction: boolean, pkp?: PKP) {
+    async sendSolanaWKTxn(wkResponse: WK, userPrivateKey: string, amount: number, broadcastTransaction: boolean, pkp?: PKP) {
         if (pkp) {
             this.pkp = pkp
         }
@@ -318,7 +318,7 @@ class LitWrapper {
                 SystemProgram.transfer({
                     fromPubkey: generatedSolanaPublicKey,
                     toPubkey: generatedSolanaPublicKey,
-                    lamports: LAMPORTS_PER_SOL / 100, // Transfer 0.01 SOL
+                    lamports: amount
                 })
             );
             solanaTransaction.feePayer = generatedSolanaPublicKey;
