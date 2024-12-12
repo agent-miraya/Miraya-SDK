@@ -1,6 +1,6 @@
 {
   "name": "lit-wrapper-sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Ansh Saxena",
   "license": "MIT",
   "description": "A wrapper SDK for Lit Protocol",
@@ -9,6 +9,7 @@
     "url": "git+https://github.com/anshss/lit-wrapper-sdk.git"
   },
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
@@ -23,7 +24,9 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "prepare": "npm run build",
-    "tester": "tsx examples/tester"
+    "test": "mocha --loader=ts-node/esm test/**/*.ts",
+    "example": "cd examples && node src/tester",
+    "tester": "cd build-test && node script"
   },
   "dependencies": {
     "@lit-protocol/auth-helpers": "^7.0.0-alpha.9",
@@ -38,7 +41,11 @@
     "ethers": "^5.7.2"
   },
   "devDependencies": {
+    "@types/chai": "^5.0.1",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.10.2",
+    "chai": "^5.1.2",
+    "mocha": "^11.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   }

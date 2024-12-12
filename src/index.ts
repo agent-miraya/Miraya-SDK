@@ -1,1 +1,1 @@
-export { LitWrapper, LitTester } from './lit';
+export { LitWrapper, LitTester } from './lit.js';

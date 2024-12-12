@@ -283,8 +283,12 @@ class LitWrapper {
                 litNodeClient,
             });
 
+            if (!wrappedKeyInfo) {
+                throw new Error("Failed to generate wrapped key");
+            }
+            
             console.log("WK: ", wrappedKeyInfo)
-            return wrappedKeyInfo;
+            return wrappedKeyInfo as WK;
         } catch (error) {
             console.error;
         } finally {

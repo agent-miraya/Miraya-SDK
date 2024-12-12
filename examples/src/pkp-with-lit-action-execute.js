@@ -15,7 +15,6 @@ const _litActionCode = async () => {
         LitActions.setResponse({ response: error.message });
     }
 };
-
 const litActionCode = `(${_litActionCode.toString()})();`;
 
 async function createKeyAndExecuteAction() {
