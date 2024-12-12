@@ -1,6 +1,6 @@
 {
   "name": "lit-wrapper-sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Ansh Saxena",
   "license": "MIT",
   "description": "A wrapper SDK for Lit Protocol",
@@ -8,15 +8,21 @@
     "type": "git",
     "url": "git+https://github.com/anshss/lit-wrapper-sdk.git"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist",
+    "build": "rm -rf dist && tsc",
+    "prepare": "npm run build",
     "tester": "tsx examples/tester"
   },
   "dependencies": {

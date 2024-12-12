@@ -1,1 +1,1 @@
-export * from './lit';
+export { LitWrapper, LitTester } from './lit';

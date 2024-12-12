@@ -1,4 +1,4 @@
-import { LitTester } from "../src/lit";
+import { LitTester } from "lit-wrapper-sdk";
 import * as ethers from "ethers";
 import "dotenv/config";
 
