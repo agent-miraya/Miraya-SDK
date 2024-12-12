@@ -1,0 +1,23 @@
+{
+  "name": "simple",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@lit-protocol/auth-helpers": "^7.0.0",
+    "@lit-protocol/constants": "^7.0.0",
+    "@lit-protocol/contracts-sdk": "^7.0.0",
+    "@lit-protocol/lit-auth-client": "^7.0.0",
+    "@lit-protocol/lit-node-client": "^6.11.3",
+    "@lit-protocol/wrapped-keys-bc": "^6.5.3",
+    "@solana/web3.js": "^1.95.8",
+    "ethers": "^5.7.2"
+  }
+}
