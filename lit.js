@@ -15,13 +15,13 @@ import {
     Transaction,
     clusterApiUrl,
 } from "@solana/web3.js";
-import { api } from "@lit-protocol/wrapped-keys-bc";
-
-const { generatePrivateKey } = api;
+import { api } from "@lit-protocol/wrapped-keys";
+const { generatePrivateKey, signTransactionWithEncryptedKey } = api;
 
 class LitWrapper {
     constructor(litNetwork) {
         this.litNetwork = litNetwork;
+        this.pkp = null;
     }
 
     async createPKP(userPrivateKey) {
@@ -42,7 +42,9 @@ class LitWrapper {
 
             const pkp = (await litContracts.pkpNftContractUtils.write.mint())
                 .pkp;
-            console.log(pkp);
+            console.log("PKP: ", pkp);
+            this.pkp = pkp;
+            return pkp;
         } catch (error) {
             console.error(error);
         }
@@ -216,9 +218,8 @@ class LitWrapper {
             debug: false,
         });
         try {
-            const pkp = this.createPKP(userPrivateKey);
-
-            await litNodeClient.connect();
+            await this.createPKP(userPrivateKey);
+            
             const ethersWallet = new ethers.Wallet(
                 userPrivateKey,
                 new ethers.providers.JsonRpcProvider(
@@ -229,9 +230,11 @@ class LitWrapper {
                 signer: ethersWallet,
                 litNodeClient,
             });
+            
+            await litNodeClient.connect();
 
             const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
-                pkpPublicKey: pkp.publicKey,
+                pkpPublicKey: this.pkp.publicKey,
                 chain: "ethereum",
                 authMethods: [authMethod],
                 resourceAbilityRequests: [
@@ -244,15 +247,18 @@ class LitWrapper {
                         ability: LIT_ABILITY.PKPSigning,
                     },
                 ],
+                expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
             });
 
-            const response = await generatePrivateKey({
+            const wrappedKeyInfo = await generatePrivateKey({
                 pkpSessionSigs,
                 network: "solana",
-                memo: "This is a wrapped key",
+                memo: "This is a test memo",
                 litNodeClient,
             });
-            return response;
+
+            console.log("WK: ", wrappedKeyInfo)
+            return wrappedKeyInfo;
         } catch (error) {
             console.error;
         } finally {
@@ -260,7 +266,8 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxn(wkResponse, userPrivateKey, broadcastTransaction) {
+    async sendSolanaWKTxn(wkResponse, userPrivateKey, broadcastTransaction, pkp) {
+        this.pkp = pkp
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
@@ -312,7 +319,7 @@ class LitWrapper {
             });
 
             const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
-                pkpPublicKey: pkp.publicKey,
+                pkpPublicKey: this.pkp.publicKey,
                 chain: "ethereum",
                 authMethods: [authMethod],
                 resourceAbilityRequests: [
@@ -325,20 +332,22 @@ class LitWrapper {
                         ability: LIT_ABILITY.PKPSigning,
                     },
                 ],
+                expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
             });
 
             const signedTransaction = await signTransactionWithEncryptedKey({
                 pkpSessionSigs,
                 network: "solana",
                 id: wkResponse.id,
-                litTransaction,
+                unsignedTransaction: litTransaction,
                 broadcast: broadcastTransaction,
                 litNodeClient,
             });
-            console.log(signedTransaction);
             return signedTransaction;
         } catch (error) {
             console.error(error);
+        } finally {
+            litNodeClient?.disconnect();
         }
     }
 }
@@ -347,7 +356,7 @@ class LitTester {
     constructor(userPrivateKey, litNetwork) {
         this.litNetwork = litNetwork;
         this.userPrivateKey = userPrivateKey;
-        this.pkpPublicKey = null;
+        this.pkp = null;
         this.initialized = false;
     }
 
@@ -378,7 +387,7 @@ class LitTester {
             const pkp = (await litContracts.pkpNftContractUtils.write.mint())
                 .pkp;
             this.pkp = pkp;
-            console.log(this.pkp)
+            console.log("PKP: ", this.pkp)
             this.initialized = true;
         } catch (error) {
             console.error(error);
