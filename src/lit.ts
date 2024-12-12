@@ -1,12 +1,14 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-import { LIT_ABILITY, LIT_RPC } from "@lit-protocol/constants";
+import { LIT_ABILITY, LIT_RPC, AUTH_METHOD_SCOPE } from "@lit-protocol/constants";
 import {
     LitActionResource,
     LitPKPResource,
 } from "@lit-protocol/auth-helpers";
 import { LitContracts } from "@lit-protocol/contracts-sdk";
 import { EthWalletProvider } from "@lit-protocol/lit-auth-client";
+import {LIT_NETWORKS_KEYS} from "@lit-protocol/types"
 import * as ethers from "ethers";
+import bs58 from "bs58";
 import {
     Connection,
     LAMPORTS_PER_SOL,
@@ -18,13 +20,28 @@ import {
 import { api } from "@lit-protocol/wrapped-keys";
 const { generatePrivateKey, signTransactionWithEncryptedKey } = api;
 
+interface PKP {
+    tokenId: string;
+    publicKey: string;
+    ethAddress: string;
+}
+
+interface WK {
+    pkpAddress: string;
+    id: string;
+    generatedPublicKey: string;
+}
+
 class LitWrapper {
-    constructor(litNetwork) {
+    public litNetwork: LIT_NETWORKS_KEYS;
+    public pkp: PKP | null;
+
+    constructor(litNetwork: LIT_NETWORKS_KEYS) {
         this.litNetwork = litNetwork;
         this.pkp = null;
     }
 
-    async createPKP(userPrivateKey) {
+    async createPKP(userPrivateKey: string) {
         try {
             const ethersWallet = new ethers.Wallet(
                 userPrivateKey,
@@ -51,10 +68,10 @@ class LitWrapper {
     }
 
     async addPermittedAction(
-        userPrivateKey,
-        pkpTokenId,
-        litActionCode,
-        pinataAPI
+        userPrivateKey: string,
+        pkpTokenId: string,
+        litActionCode: string,
+        pinataAPI: string
     ) {
         const ipfsCID = await this.uploadViaPinata(pinataAPI, litActionCode);
 
@@ -73,13 +90,13 @@ class LitWrapper {
         await litContracts.addPermittedAction({
             pkpTokenId: pkpTokenId,
             ipfsId: ipfsCID,
-            authMethodScopes: [AuthMethodScope.SignAnything],
+            authMethodScopes: [AUTH_METHOD_SCOPE.SignAnything],
         });
 
         return ipfsCID;
     }
 
-    async uploadViaPinata(pinataAPI, litActionCode) {
+    async uploadViaPinata(pinataAPI: string, litActionCode: string) {
         const formData = new FormData();
 
         const file = new File([litActionCode], "Action.txt", {
@@ -111,7 +128,7 @@ class LitWrapper {
         return response.IpfsHash;
     }
 
-    async checkPermits(pkpTokenId, litActionCID) {
+    async checkPermits(pkpTokenId: string, litActionCID: string) {
         console.log("checking perms..");
 
         const litContracts = new LitContracts({
@@ -151,18 +168,23 @@ class LitWrapper {
         return results;
     }
 
-    async createPKPWithLitAction(userPrivateKey, litActionCode, pinataAPI) {
-        const pkp = this.createPKP(userPrivateKey);
+    async createPKPWithLitAction(userPrivateKey: string, litActionCode: string, pinataAPI: string) {
+        await this.createPKP(userPrivateKey);
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+
         const ipfsCID = this.addPermittedAction(
             userPrivateKey,
-            pkp.tokenId,
+            this.pkp.tokenId,
             litActionCode,
             pinataAPI
         );
+        let pkp = this.pkp;
         return { pkp, ipfsCID };
     }
 
-    async executeLitAction(userPrivateKey, pkpPublicKey, litActionCID, params) {
+    async executeLitAction(userPrivateKey: string, pkpPublicKey: string, litActionCID: string, params: Object) {
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
@@ -212,13 +234,17 @@ class LitWrapper {
         }
     }
 
-    async createSolanaWK(userPrivateKey) {
+    async createSolanaWK(userPrivateKey: string) {
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
         });
         try {
             await this.createPKP(userPrivateKey);
+
+            if (!this.pkp) {
+                throw new Error("PKP not initialized");
+            }
             
             const ethersWallet = new ethers.Wallet(
                 userPrivateKey,
@@ -266,8 +292,14 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxn(wkResponse, userPrivateKey, broadcastTransaction, pkp) {
-        this.pkp = pkp
+    async sendSolanaWKTxn(wkResponse: WK, userPrivateKey: string, broadcastTransaction: boolean, pkp?: PKP) {
+        if (pkp) {
+            this.pkp = pkp
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
@@ -353,14 +385,19 @@ class LitWrapper {
 }
 
 class LitTester {
-    constructor(userPrivateKey, litNetwork) {
+    public litNetwork: LIT_NETWORKS_KEYS;
+    public pkp: PKP | null;
+    public userPrivateKey: any;
+    public initialized: boolean;
+
+    constructor(userPrivateKey: string, litNetwork: LIT_NETWORKS_KEYS) {
         this.litNetwork = litNetwork;
         this.userPrivateKey = userPrivateKey;
         this.pkp = null;
         this.initialized = false;
     }
 
-    static async init(userPrivateKey, litNetwork) {
+    static async init(userPrivateKey: string, litNetwork: LIT_NETWORKS_KEYS) {
         const instance = new LitTester(userPrivateKey, litNetwork);
         await instance.initializePKP();
         return instance;
@@ -395,7 +432,11 @@ class LitTester {
         }
     }
 
-    async testLitAction(litActionCode, params) {
+    async testLitAction(litActionCode: string, params: Object) {
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,

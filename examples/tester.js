@@ -1,4 +1,4 @@
-import { LitTester } from "../lit.js";
+import { LitTester } from "../src/lit";
 import * as ethers from "ethers";
 import "dotenv/config";
 
@@ -16,8 +16,11 @@ const _litActionCode = async () => {
   };
   
 const litActionCode = `(${_litActionCode.toString()})();`;
-
+  
 async function test() {
+    if (!process.env.ETHEREUM_PRIVATE_KEY) {
+        throw new Error("ETHEREUM_PRIVATE_KEY is not set");
+    }
     const tester = await LitTester.init(
         process.env.ETHEREUM_PRIVATE_KEY,
         "datil-dev"
