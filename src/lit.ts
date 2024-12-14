@@ -17,7 +17,7 @@ import {
     SystemProgram,
     Transaction,
     clusterApiUrl,
-    Cluster
+    Cluster,
 } from "@solana/web3.js";
 import { api } from "@lit-protocol/wrapped-keys";
 const { generatePrivateKey, signTransactionWithEncryptedKey } = api;
@@ -66,7 +66,6 @@ class LitWrapper {
 
             const pkp = (await litContracts.pkpNftContractUtils.write.mint())
                 .pkp;
-            console.log("PKP: ", pkp);
             this.pkp = pkp;
             return pkp;
         } catch (error) {
@@ -303,8 +302,13 @@ class LitWrapper {
                 throw new Error("Failed to generate wrapped key");
             }
 
-            console.log("WK: ", wrappedKeyInfo);
-            return wrappedKeyInfo as WK;
+            const response = {
+                pkpInfo: this.pkp as PKP,
+                wkInfo: wrappedKeyInfo as WK,
+            };
+
+            console.log("res: ", response);
+            return response;
         } catch (error) {
             console.error;
         } finally {
@@ -412,7 +416,9 @@ class LitWrapper {
             litNodeClient?.disconnect();
         }
     }
-    async sendSolanaWKTxnWithBONK(
+
+    async sendSolanaWKTxnWithCustomToken(
+        tokenMintAddress: string,
         amount: number,
         toAddress: string,
         network: Cluster,
@@ -436,19 +442,26 @@ class LitWrapper {
             const generatedSolanaPublicKey = new PublicKey(
                 wkResponse.generatedPublicKey
             );
-            console.log("Sending from address: ", generatedSolanaPublicKey.toString());
 
             const receiverPublicKey = new PublicKey(toAddress);
 
-            const BONK_TOKEN_MINT =
-                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token mint address
+            console.log(
+                "Sending from address: ",
+                generatedSolanaPublicKey.toString()
+            );
+
+            console.log(
+                "Sending to address: ",
+                receiverPublicKey.toString()
+            );
+
             const tokenAccount = await getAssociatedTokenAddress(
-                new PublicKey(BONK_TOKEN_MINT),
+                new PublicKey(tokenMintAddress),
                 generatedSolanaPublicKey
             );
 
             const destinationAccount = await getAssociatedTokenAddress(
-                new PublicKey(BONK_TOKEN_MINT),
+                new PublicKey(tokenMintAddress),
                 receiverPublicKey
             );
 
@@ -469,7 +482,7 @@ class LitWrapper {
                         generatedSolanaPublicKey,
                         destinationAccount,
                         receiverPublicKey,
-                        new PublicKey(BONK_TOKEN_MINT)
+                        new PublicKey(tokenMintAddress)
                     )
                 );
             }
