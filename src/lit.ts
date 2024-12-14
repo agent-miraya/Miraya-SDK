@@ -39,6 +39,52 @@ interface WK {
     generatedPublicKey: string;
 }
 
+interface addPermittedActionParams {
+    userPrivateKey: string;
+    pkpTokenId: string;
+    litActionCode: string;
+    pinataAPI: string;
+}
+
+interface uploadViaPinataParams {
+    pinataAPI: string;
+    litActionCode: string;
+}
+
+interface createPKPWithLitActionParams {
+    userPrivateKey: string;
+    litActionCode: string;
+    pinataAPI: string;
+}
+
+interface executeLitActionParams {
+    userPrivateKey: string;
+    pkpPublicKey: string;
+    litActionCID: string;
+    params: Object;
+}
+
+interface sendSolanaWKTxnWithSolParams {
+    amount: number;
+    toAddress: string;
+    network: Cluster;
+    broadcastTransaction: boolean;
+    userPrivateKey: string;
+    wkResponse: WK;
+    pkp?: PKP;
+}
+
+interface sendSolanaWKTxnWithCustomTokenParams {
+    tokenMintAddress: string;
+    amount: number;
+    toAddress: string;
+    network: Cluster;
+    broadcastTransaction: boolean;
+    userPrivateKey: string;
+    wkResponse: WK;
+    pkp?: PKP;
+}
+
 class LitWrapper {
     public litNetwork: LIT_NETWORKS_KEYS;
     public pkp: PKP | null;
@@ -73,13 +119,16 @@ class LitWrapper {
         }
     }
 
-    async addPermittedAction(
-        userPrivateKey: string,
-        pkpTokenId: string,
-        litActionCode: string,
-        pinataAPI: string
-    ) {
-        const ipfsCID = await this.uploadViaPinata(pinataAPI, litActionCode);
+    async addPermittedAction({
+        userPrivateKey,
+        pkpTokenId,
+        litActionCode,
+        pinataAPI,
+    }: addPermittedActionParams) {
+        const ipfsCID = await this.uploadViaPinata({
+            pinataAPI,
+            litActionCode,
+        });
 
         const ethersWallet = new ethers.Wallet(
             userPrivateKey,
@@ -102,7 +151,7 @@ class LitWrapper {
         return ipfsCID;
     }
 
-    async uploadViaPinata(pinataAPI: string, litActionCode: string) {
+    async uploadViaPinata({ pinataAPI, litActionCode }: uploadViaPinataParams) {
         const formData = new FormData();
 
         const file = new File([litActionCode], "Action.txt", {
@@ -174,32 +223,32 @@ class LitWrapper {
         return results;
     }
 
-    async createPKPWithLitAction(
-        userPrivateKey: string,
-        litActionCode: string,
-        pinataAPI: string
-    ) {
+    async createPKPWithLitAction({
+        userPrivateKey,
+        litActionCode,
+        pinataAPI,
+    }: createPKPWithLitActionParams) {
         await this.createPKP(userPrivateKey);
         if (!this.pkp) {
             throw new Error("PKP not initialized");
         }
 
-        const ipfsCID = this.addPermittedAction(
+        const ipfsCID = this.addPermittedAction({
             userPrivateKey,
-            this.pkp.tokenId,
+            pkpTokenId: this.pkp.tokenId,
             litActionCode,
-            pinataAPI
-        );
+            pinataAPI,
+        });
         let pkp = this.pkp;
         return { pkp, ipfsCID };
     }
 
-    async executeLitAction(
-        userPrivateKey: string,
-        pkpPublicKey: string,
-        litActionCID: string,
-        params: Object
-    ) {
+    async executeLitAction({
+        userPrivateKey,
+        pkpPublicKey,
+        litActionCID,
+        params,
+    }: executeLitActionParams) {
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
@@ -316,15 +365,15 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxnWithSol(
-        amount: number,
-        toAddress: string,
-        network: Cluster,
-        broadcastTransaction: boolean,
-        userPrivateKey: string,
-        wkResponse: WK,
-        pkp?: PKP
-    ) {
+    async sendSolanaWKTxnWithSol({
+        amount,
+        toAddress,
+        network,
+        broadcastTransaction,
+        userPrivateKey,
+        wkResponse,
+        pkp,
+    }: sendSolanaWKTxnWithSolParams) {
         if (pkp) {
             this.pkp = pkp;
         }
@@ -417,16 +466,16 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxnWithCustomToken(
-        tokenMintAddress: string,
-        amount: number,
-        toAddress: string,
-        network: Cluster,
-        broadcastTransaction: boolean,
-        userPrivateKey: string,
-        wkResponse: WK,
-        pkp?: PKP
-    ) {
+    async sendSolanaWKTxnWithCustomToken({
+        tokenMintAddress,
+        amount,
+        toAddress,
+        network,
+        broadcastTransaction,
+        userPrivateKey,
+        wkResponse,
+        pkp,
+    }: sendSolanaWKTxnWithCustomTokenParams) {
         if (pkp) {
             this.pkp = pkp;
         }
@@ -450,10 +499,7 @@ class LitWrapper {
                 generatedSolanaPublicKey.toString()
             );
 
-            console.log(
-                "Sending to address: ",
-                receiverPublicKey.toString()
-            );
+            console.log("Sending to address: ", receiverPublicKey.toString());
 
             const tokenAccount = await getAssociatedTokenAddress(
                 new PublicKey(tokenMintAddress),
@@ -560,6 +606,11 @@ class LitWrapper {
     }
 }
 
+interface testLitActionParams {
+    litActionCode: string;
+    params: Object;
+}
+
 class LitTester {
     public litNetwork: LIT_NETWORKS_KEYS;
     public pkp: PKP | null;
@@ -608,7 +659,7 @@ class LitTester {
         }
     }
 
-    async testLitAction(litActionCode: string, params: Object) {
+    async testLitAction({ litActionCode, params }: testLitActionParams) {
         if (!this.pkp) {
             throw new Error("PKP not initialized");
         }
