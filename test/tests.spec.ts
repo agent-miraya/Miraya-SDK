@@ -82,7 +82,7 @@ describe('Lit Wrapper SDK Tests', function() {
             if (!wkResponse) {
                 throw new Error('wkResponse is undefined');
             }
-            const result = await litWrapper.sendSolanaWKTxn(
+            const result = await litWrapper.sendSolanaWKTxnWithSol(
                 wkResponse,
                 ETHEREUM_PRIVATE_KEY,
                 false

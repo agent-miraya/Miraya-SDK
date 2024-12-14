@@ -9,14 +9,6 @@ if (!ETHEREUM_PRIVATE_KEY) {
     throw new Error('ETHEREUM_PRIVATE_KEY is required');
 }
 
-async function generateSolanaWallet() {
-    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
-    console.log(
-        "Fund this address with bonk and gas sol",
-        response.wkInfo.generatedPublicKey
-    );
-}
-
 let res = {
     pkpInfo: {
         tokenId:
@@ -31,6 +23,14 @@ let res = {
         generatedPublicKey: "HPLrMfuyaQeZPiwWygnPcCfLtNEgfBJdcUYEWgDwCBhE",
     },
 };
+
+async function generateSolanaWallet() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log(
+        "Fund this address with bonk and gas sol",
+        response.wkInfo.generatedPublicKey
+    );
+}
 
 async function sendSolTxn() {
     const signedTx = await litWrapper.sendSolanaWKTxnWithSol({
@@ -59,7 +59,7 @@ async function sendBONKTxn() {
     console.log("Transaction Hash: ", signedTx);
 }
 
-async function generateSolanaWalletAndSendTxn() {
+async function generateSolanaWalletAndSendSolTxn() {
     const res = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     console.log("Solana Public Key", res.wkInfo.generatedPublicKey);
 
@@ -75,24 +75,7 @@ async function generateSolanaWalletAndSendTxn() {
     console.log("Transaction Hash: ", signedTx);
 }
 
-
-async function sendBONKTxn22() {
-    console.log(res)
-    const signedTx = await litWrapper.sendSolanaWKTxnWithCustomToken(
-        "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK MINT TOKEN
-        4 * Math.pow(10, 5),
-        "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
-        "mainnet-beta",
-        true,
-        ETHEREUM_PRIVATE_KEY,
-        res.wkInfo,
-        res.pkpInfo
-    );
-    console.log("Transaction Hash: ", signedTx);
-}
-
 // generateSolanaWallet()
 // sendSolTxn()
-// sendBONKTxn();
-sendBONKTxn22()
-// generateSolanaWalletAndSendTxn()
+sendBONKTxn()
+// generateSolanaWalletAndSendSolTxn()
