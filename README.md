@@ -10,7 +10,7 @@ npm install lit-wrapper-sdk
 
 ## Examples
 
-### 1) Creating a Key on Solana and Sending Txn
+### 1) Creating a Key on Solana and Sending Transaction
 
 Using Lit to create a Solana Key and Send a Txn with it, an Ethereum private key works as an auth method for generating signatures with a newly created Solana Key
 
@@ -21,14 +21,36 @@ import "dotenv/config";
 const litWrapper = new LitWrapper("datil-dev")
 
 async function generateSolanaWallet() {
-    const response = await litWrapper.createSolanaWK(process.env.ETHEREUM_PRIVATE_KEY);
-    console.log("Solana Public Key", response.generatedPublicKey)
-    
-    const amount = 0.01 * 10**9 // 0.01 SOL
-    const txn = await litWrapper.sendSolanaWKTxn(response, process.env.ETHEREUM_PRIVATE_KEY, amount, false)
-    console.log("Signed Transaction", txn)
+    const res = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", res.wkInfo.generatedPublicKey);
 }
-generateSolanaWallet()
+
+async function sendSolTxn() {
+    const signedTx = await litWrapper.sendSolanaWKTxnWithSol({
+        amount: 0.0022 * Math.pow(10, 9),
+        toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
+        network: "mainnet-beta",
+        broadcastTransaction: true,
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        wkResponse: res.wkInfo,
+        pkp: res.pkpInfo,
+    });
+    console.log("Transaction Hash: ", signedTx);
+}
+
+async function sendBONKTxn() {
+    const signedTx = await litWrapper.sendSolanaWKTxnWithCustomToken({
+        tokenMintAddress: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK MINT TOKEN
+        amount: 4 * Math.pow(10, 5),
+        toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
+        network: "mainnet-beta",
+        broadcastTransaction: true,
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        wkResponse: res.wkInfo,
+        pkp: res.pkpInfo,
+    });
+    console.log("Transaction Hash: ", signedTx);
+}
 ```
 
 ### 2) Creating a key on EVM and Executing a Lit Action
@@ -72,8 +94,6 @@ async function createKeyAndExecuteAction() {
     const response = litWrapper.executeLitAction(usePrivateKey, pkp, ipfsCID, params);
     console.log(response)
 }
-
-createKeyAndExecuteAction()
 ```
 
 ### 3) Testing a Lit Action
@@ -81,28 +101,25 @@ createKeyAndExecuteAction()
 Instantly create a Lit Action and test its execution over Lit Network
 
 ```js
-import { LitTester } from "lit-wrapper-sdk";
-import * as ethers from "ethers";
-import "dotenv/config";
-
-const _litActionCode = async () => {
-    try {
-        const sigShare = await LitActions.ethPersonalSignMessageEcdsa({
-            message: dataToSign,
-            publicKey: pkpPublicKey,
-            sigName,
-        });
-        Lit.Actions.setResponse({ response: sigShare });
-    } catch (error) {
-        Lit.Actions.setResponse({ response: error.message });
-    }
-};
-const litActionCode = `(${_litActionCode.toString()})();`;
-
-async function test() {
+async function testAction() {
     if (!process.env.ETHEREUM_PRIVATE_KEY) {
         throw new Error("ETHEREUM_PRIVATE_KEY is not set");
     }
+
+    const _litActionCode = async () => {
+        try {
+            const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
+                message: dataToSign,
+                publicKey: pkpPublicKey,
+                sigName,
+            });
+            Lit.Actions.setResponse({ response: sigShare });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    };
+    const litActionCode = `(${_litActionCode.toString()})();`;
+
     const tester = await LitTester.init(
         process.env.ETHEREUM_PRIVATE_KEY,
         "datil-dev"
@@ -114,23 +131,10 @@ async function test() {
                 ethers.utils.keccak256([1, 2, 3, 4, 5])
             ),
             sigName: "sig1",
-        },
-        {
-            dataToSign: ethers.utils.arrayify(
-                ethers.utils.keccak256([3, 3, 3, 3, 3])
-            ),
-            sigName: "sig2",
         }
     ];
 
-    const result1 = await tester.testLitAction(litActionCode, params[0]);
-    console.log("test result 1", result1);
-
-    const result2 = await tester.testLitAction(litActionCode, params[1]);
-    console.log("test result 2", result2);
-
-    const result3 = await tester.testLitAction(litActionCode, params[2]);
-    console.log("test result 3", result3);
+    const results = await tester.testLitAction(litActionCode, params[0]);
+    console.log("Test Results: ", results);
 }
-test();
 ```
