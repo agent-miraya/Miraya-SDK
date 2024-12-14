@@ -1,6 +1,6 @@
 {
   "name": "lit-wrapper-sdk",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Ansh Saxena",
   "license": "MIT",
   "description": "A wrapper SDK for Lit Protocol",
@@ -26,7 +26,8 @@
     "prepare": "npm run build",
     "test": "mocha --loader=ts-node/esm test/**/*.ts",
     "example": "cd examples && node src/tester",
-    "tester": "cd build-test && node solana-txn"
+    "test:pre": "node --loader ts-node/esm pre-build-test/script",
+    "test:post": "node post-build-test/script"
   },
   "dependencies": {
     "@lit-protocol/auth-helpers": "^7.0.0-alpha.9",
@@ -35,6 +36,7 @@
     "@lit-protocol/lit-auth-client": "^7.0.0-alpha.9",
     "@lit-protocol/lit-node-client": "^7.0.0-alpha.9",
     "@lit-protocol/wrapped-keys": "^7.0.0-alpha.9",
+    "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.95.8",
     "bs58": "^6.0.0",
     "dotenv": "^16.4.7",

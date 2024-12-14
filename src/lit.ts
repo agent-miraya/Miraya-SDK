@@ -1,12 +1,13 @@
 import { LitNodeClient } from "@lit-protocol/lit-node-client";
-import { LIT_ABILITY, LIT_RPC, AUTH_METHOD_SCOPE } from "@lit-protocol/constants";
 import {
-    LitActionResource,
-    LitPKPResource,
-} from "@lit-protocol/auth-helpers";
+    LIT_ABILITY,
+    LIT_RPC,
+    AUTH_METHOD_SCOPE,
+} from "@lit-protocol/constants";
+import { LitActionResource, LitPKPResource } from "@lit-protocol/auth-helpers";
 import { LitContracts } from "@lit-protocol/contracts-sdk";
 import { EthWalletProvider } from "@lit-protocol/lit-auth-client";
-import {LIT_NETWORKS_KEYS} from "@lit-protocol/types"
+import { LIT_NETWORKS_KEYS } from "@lit-protocol/types";
 import * as ethers from "ethers";
 import bs58 from "bs58";
 import {
@@ -16,9 +17,15 @@ import {
     SystemProgram,
     Transaction,
     clusterApiUrl,
+    Cluster
 } from "@solana/web3.js";
 import { api } from "@lit-protocol/wrapped-keys";
 const { generatePrivateKey, signTransactionWithEncryptedKey } = api;
+import {
+    getAssociatedTokenAddress,
+    createAssociatedTokenAccountInstruction,
+    createTransferInstruction,
+} from "@solana/spl-token";
 
 interface PKP {
     tokenId: string;
@@ -168,7 +175,11 @@ class LitWrapper {
         return results;
     }
 
-    async createPKPWithLitAction(userPrivateKey: string, litActionCode: string, pinataAPI: string) {
+    async createPKPWithLitAction(
+        userPrivateKey: string,
+        litActionCode: string,
+        pinataAPI: string
+    ) {
         await this.createPKP(userPrivateKey);
         if (!this.pkp) {
             throw new Error("PKP not initialized");
@@ -184,7 +195,12 @@ class LitWrapper {
         return { pkp, ipfsCID };
     }
 
-    async executeLitAction(userPrivateKey: string, pkpPublicKey: string, litActionCID: string, params: Object) {
+    async executeLitAction(
+        userPrivateKey: string,
+        pkpPublicKey: string,
+        litActionCID: string,
+        params: Object
+    ) {
         const litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
             debug: false,
@@ -245,7 +261,7 @@ class LitWrapper {
             if (!this.pkp) {
                 throw new Error("PKP not initialized");
             }
-            
+
             const ethersWallet = new ethers.Wallet(
                 userPrivateKey,
                 new ethers.providers.JsonRpcProvider(
@@ -256,7 +272,7 @@ class LitWrapper {
                 signer: ethersWallet,
                 litNodeClient,
             });
-            
+
             await litNodeClient.connect();
 
             const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
@@ -286,8 +302,8 @@ class LitWrapper {
             if (!wrappedKeyInfo) {
                 throw new Error("Failed to generate wrapped key");
             }
-            
-            console.log("WK: ", wrappedKeyInfo)
+
+            console.log("WK: ", wrappedKeyInfo);
             return wrappedKeyInfo as WK;
         } catch (error) {
             console.error;
@@ -296,9 +312,17 @@ class LitWrapper {
         }
     }
 
-    async sendSolanaWKTxn(wkResponse: WK, userPrivateKey: string, amount: number, broadcastTransaction: boolean, pkp?: PKP) {
+    async sendSolanaWKTxnWithSol(
+        amount: number,
+        toAddress: string,
+        network: Cluster,
+        broadcastTransaction: boolean,
+        userPrivateKey: string,
+        wkResponse: WK,
+        pkp?: PKP
+    ) {
         if (pkp) {
-            this.pkp = pkp
+            this.pkp = pkp;
         }
         if (!this.pkp) {
             throw new Error("PKP not initialized");
@@ -313,18 +337,20 @@ class LitWrapper {
                 wkResponse.generatedPublicKey
             );
 
+            const receiverPublicKey = new PublicKey(toAddress);
+
             const solanaTransaction = new Transaction();
             solanaTransaction.add(
                 SystemProgram.transfer({
                     fromPubkey: generatedSolanaPublicKey,
-                    toPubkey: generatedSolanaPublicKey,
-                    lamports: amount
+                    toPubkey: receiverPublicKey,
+                    lamports: amount,
                 })
             );
             solanaTransaction.feePayer = generatedSolanaPublicKey;
 
             const solanaConnection = new Connection(
-                clusterApiUrl("devnet"),
+                clusterApiUrl(network),
                 "confirmed"
             );
             const { blockhash } = await solanaConnection.getLatestBlockhash();
@@ -339,7 +365,140 @@ class LitWrapper {
 
             const litTransaction = {
                 serializedTransaction,
-                chain: "devnet",
+                chain: network,
+            };
+
+            await litNodeClient.connect();
+            const ethersWallet = new ethers.Wallet(
+                userPrivateKey,
+                new ethers.providers.JsonRpcProvider(
+                    LIT_RPC.CHRONICLE_YELLOWSTONE
+                )
+            );
+            const authMethod = await EthWalletProvider.authenticate({
+                signer: ethersWallet,
+                litNodeClient,
+            });
+
+            const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+                pkpPublicKey: this.pkp.publicKey,
+                chain: "ethereum",
+                authMethods: [authMethod],
+                resourceAbilityRequests: [
+                    {
+                        resource: new LitActionResource("*"),
+                        ability: LIT_ABILITY.LitActionExecution,
+                    },
+                    {
+                        resource: new LitPKPResource("*"),
+                        ability: LIT_ABILITY.PKPSigning,
+                    },
+                ],
+                expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+            });
+
+            const signedTransaction = await signTransactionWithEncryptedKey({
+                pkpSessionSigs,
+                network: "solana",
+                id: wkResponse.id,
+                unsignedTransaction: litTransaction,
+                broadcast: broadcastTransaction,
+                litNodeClient,
+            });
+            return signedTransaction;
+        } catch (error) {
+            console.error(error);
+        } finally {
+            litNodeClient?.disconnect();
+        }
+    }
+    async sendSolanaWKTxnWithBONK(
+        amount: number,
+        toAddress: string,
+        network: Cluster,
+        broadcastTransaction: boolean,
+        userPrivateKey: string,
+        wkResponse: WK,
+        pkp?: PKP
+    ) {
+        if (pkp) {
+            this.pkp = pkp;
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+
+        const litNodeClient = new LitNodeClient({
+            litNetwork: this.litNetwork,
+            debug: false,
+        });
+        try {
+            const generatedSolanaPublicKey = new PublicKey(
+                wkResponse.generatedPublicKey
+            );
+            console.log("Sending from address: ", generatedSolanaPublicKey.toString());
+
+            const receiverPublicKey = new PublicKey(toAddress);
+
+            const BONK_TOKEN_MINT =
+                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token mint address
+            const tokenAccount = await getAssociatedTokenAddress(
+                new PublicKey(BONK_TOKEN_MINT),
+                generatedSolanaPublicKey
+            );
+
+            const destinationAccount = await getAssociatedTokenAddress(
+                new PublicKey(BONK_TOKEN_MINT),
+                receiverPublicKey
+            );
+
+            const transaction = new Transaction();
+
+            const connection = new Connection(
+                clusterApiUrl(network),
+                "confirmed"
+            );
+
+            // Check if destination token account exists
+            const destinationAccountInfo = await connection.getAccountInfo(
+                destinationAccount
+            );
+            if (!destinationAccountInfo) {
+                transaction.add(
+                    createAssociatedTokenAccountInstruction(
+                        generatedSolanaPublicKey,
+                        destinationAccount,
+                        receiverPublicKey,
+                        new PublicKey(BONK_TOKEN_MINT)
+                    )
+                );
+            }
+
+            // Add transfer instruction
+            transaction.add(
+                createTransferInstruction(
+                    tokenAccount,
+                    destinationAccount,
+                    generatedSolanaPublicKey,
+                    amount
+                )
+            );
+
+            transaction.feePayer = generatedSolanaPublicKey;
+
+            const { blockhash } = await connection.getLatestBlockhash();
+            transaction.recentBlockhash = blockhash;
+
+            const serializedTransaction = transaction
+                .serialize({
+                    requireAllSignatures: false,
+                    verifySignatures: false,
+                })
+                .toString("base64");
+
+            const litTransaction = {
+                serializedTransaction,
+                chain: network,
             };
 
             await litNodeClient.connect();
@@ -409,7 +568,7 @@ class LitTester {
 
     async initializePKP() {
         if (this.initialized) return;
-        
+
         try {
             const ethersWallet = new ethers.Wallet(
                 this.userPrivateKey,
@@ -428,7 +587,7 @@ class LitTester {
             const pkp = (await litContracts.pkpNftContractUtils.write.mint())
                 .pkp;
             this.pkp = pkp;
-            console.log("PKP: ", this.pkp)
+            console.log("PKP: ", this.pkp);
             this.initialized = true;
         } catch (error) {
             console.error(error);

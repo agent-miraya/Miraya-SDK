@@ -1,4 +1,5 @@
 .env
 node_modules
 dist
-build-test
+pre-build-test
+post-build-test
