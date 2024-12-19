@@ -1,4 +1,4 @@
-import { LitWrapper, LitTester } from "../src/index.ts";
+import { LitWrapper, LitTester, FlagForLitTxn } from "../src/index.ts";
 import "dotenv/config";
 
 const litWrapper = new LitWrapper("datil-dev");
@@ -6,7 +6,7 @@ const litWrapper = new LitWrapper("datil-dev");
 const ETHEREUM_PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY;
 
 if (!ETHEREUM_PRIVATE_KEY) {
-    throw new Error('ETHEREUM_PRIVATE_KEY is required');
+    throw new Error("ETHEREUM_PRIVATE_KEY is required");
 }
 
 let res = {
@@ -39,7 +39,7 @@ async function sendSolTxn() {
         network: "devnet",
         broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wkResponse: res.wkInfo,
+        wk: res.wkInfo,
         pkp: res.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
@@ -53,7 +53,7 @@ async function sendBONKTxn() {
         network: "mainnet-beta",
         broadcastTransaction: true,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wkResponse: res.wkInfo,
+        wk: res.wkInfo,
         pkp: res.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
@@ -69,20 +69,47 @@ async function generateSolanaWalletAndSendSolTxn() {
         network: "mainnet-beta",
         broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wkResponse: res.wkInfo,
+        wk: res.wkInfo,
         pkp: res.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
 }
 
-async function haha() {
-    const response = await litWrapper.haha(ETHEREUM_PRIVATE_KEY, res.pkpInfo, res.wkInfo);
-    console.log(response)
+async function createLitActionAndSignSolanaTxn() {
+    const conditionLogic = `
+    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
+    const resp = await fetch(url).then((response) => response.json());
+    const temp = resp.properties.periods[0].temperature;
+
+    console.log(temp);
+
+    // only sign if the temperature is below 60
+    if (temp < 60) {
+        createSignatureWithAction();
+    }`;
+
+    const txn = await litWrapper.createSerializedLitTxn({
+        wk: res.wkInfo,
+        toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
+        amount: 0.0022 * Math.pow(10, 9),
+        network: "mainnet-beta",
+        flag: FlagForLitTxn.SOL,
+    });
+    
+    const response = await litWrapper.conditionalSigningOnSolana({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        litTransaction: txn,
+        conditionLogic,
+        broadcastTransaction: false,
+        wk: res.wkInfo,
+        pkp: res.pkpInfo,
+    }
+    );
+    console.log(response);
 }
 
-
 // generateSolanaWallet()
-sendSolTxn()
+// sendSolTxn()
 // sendBONKTxn()
 // generateSolanaWalletAndSendSolTxn()
-// haha()
+createLitActionAndSignSolanaTxn();

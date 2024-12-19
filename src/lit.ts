@@ -12,13 +12,11 @@ import * as ethers from "ethers";
 import bs58 from "bs58";
 import {
     Connection,
-    LAMPORTS_PER_SOL,
     PublicKey,
     SystemProgram,
     Transaction,
     clusterApiUrl,
-    Cluster,
-    Enum,
+    Cluster
 } from "@solana/web3.js";
 import { api } from "@lit-protocol/wrapped-keys";
 const { generatePrivateKey, signTransactionWithEncryptedKey, getEncryptedKey } =
@@ -71,13 +69,23 @@ enum FlagForLitTxn {
     SOL,
     CUSTOM,
 }
+
+interface conditionalSigningOnSolanaParams {
+    userPrivateKey: string,
+    litTransaction: any,
+    broadcastTransaction: boolean,
+    conditionLogic: string
+    pkp?: PKP,
+    wk?: WK,
+}
+
 interface createSerializedLitTxnParams {
-    wkResponse: WK;
     toAddress: string;
     amount: number;
     network: Cluster;
     flag: FlagForLitTxn;
-    tokenMintAddress: string | undefined;
+    tokenMintAddress?: string;
+    wk?: WK;
 }
 
 interface sendSolanaWKTxnWithSolParams {
@@ -86,7 +94,7 @@ interface sendSolanaWKTxnWithSolParams {
     network: Cluster;
     broadcastTransaction: boolean;
     userPrivateKey: string;
-    wkResponse: WK;
+    wk?: WK;
     pkp?: PKP;
 }
 
@@ -97,7 +105,7 @@ interface sendSolanaWKTxnWithCustomTokenParams {
     network: Cluster;
     broadcastTransaction: boolean;
     userPrivateKey: string;
-    wkResponse: WK;
+    wk?: WK;
     pkp?: PKP;
 }
 
@@ -105,14 +113,16 @@ class LitWrapper {
     private litNodeClient: LitNodeClient;
     private litNetwork: LIT_NETWORKS_KEYS;
     private pkp: PKP | null;
+    private wk: WK | null;
 
     constructor(litNetwork: LIT_NETWORKS_KEYS) {
         this.litNetwork = litNetwork;
         this.litNodeClient = new LitNodeClient({
             litNetwork: this.litNetwork,
-            debug: true,
+            debug: false,
         });
         this.pkp = null;
+        this.wk = null;
     }
 
     async createPKP(userPrivateKey: string) {
@@ -390,18 +400,26 @@ class LitWrapper {
         }
     }
 
-    async conditionalSigningOnSolana(
-        userPrivateKey: string,
-        pkp: PKP,
-        wk: WK,
-        litTransaction: any
-    ) {
-        // if (pkp) {
-        //     this.pkp = pkp;
-        // }
-        // if (!this.pkp) {
-        //     throw new Error("PKP not initialized");
-        // }
+    async conditionalSigningOnSolana({
+        userPrivateKey,
+        pkp,
+        wk,
+        litTransaction,
+        broadcastTransaction,
+        conditionLogic
+    }: conditionalSigningOnSolanaParams) {
+        if (pkp) {
+            this.pkp = pkp;
+        }
+        if (wk) {
+            this.wk = wk;
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
+        }
 
         try {
             this.litNodeClient.connect();
@@ -412,31 +430,37 @@ class LitWrapper {
             } = await getEncryptedKey({
                 pkpSessionSigs: await this.getSessionSigs(
                     userPrivateKey,
-                    pkp.publicKey,
+                    this.pkp.publicKey,
                     "pkp"
                 ),
                 litNodeClient: this.litNodeClient,
-                id: wk.id,
+                id: this.wk.id,
             });
 
-            const litActionCode: string = `(async () => {
+            const combinedCode = `
+            async function createSignatureWithAction() {
+                const response = await Lit.Actions.call({ 
+                    ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk", 
+                    params: {
+                        accessControlConditions,
+                        ciphertext,
+                        dataToEncryptHash,
+                        unsignedTransaction,
+                        broadcast: false,
+                    }
+                });
+                return response;
+            }
+            async function run() {
                 try {
-                    const response = await Lit.Actions.call({ 
-                        ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk", 
-                        params: {
-                            accessControlConditions,
-                            ciphertext,
-                            dataToEncryptHash,
-                            unsignedTransaction,
-                            broadcast: false,
-                        }
-                    });
-
+                    let response;
+                    ${conditionLogic.replace('createSignatureWithAction();', 'response = await createSignatureWithAction();')}
                     Lit.Actions.setResponse({ response: response });
                 } catch (error) {
                     Lit.Actions.setResponse({ response: error.message });
                 }
-            })();`;
+            }
+            run();`;
 
             const wkAccessControlConditions: Object = {
                 contractAddress: "",
@@ -446,69 +470,34 @@ class LitWrapper {
                 parameters: [":userAddress"],
                 returnValueTest: {
                     comparator: "=",
-                    value: pkp.ethAddress,
-                    // value: "0x6428B9170f12EaC6aBA3835775D2bf27e2D6EAd4",
+                    value: this.pkp.ethAddress,
                 },
             };
-
-            // const response: any = await this.executeLitAction({
-            //     userPrivateKey,
-            //     pkpPublicKey: this.pkp.publicKey,
-            //     litActionCode: litActionCode,
-            //     // litActionIpfsCid: "",
-            //     params: {
-            //         // pkpSessionSig: await this.getSessionSigs(
-            //         //     userPrivateKey,
-            //         //     this.pkp.publicKey,
-            //         //     "pkp"
-            //         // ),
-            //         publicKey: this.pkp.publicKey,
-            //         accessControlConditions: wkAccessControlConditions,
-            //         ciphertext: solanaCipherText,
-            //         dataToEncryptHash: solanaDataToEncryptHash,
-            //         unsignedTransaction: litTransaction,
-            //     },
-            // });
 
             if (!this.litNodeClient.ready) {
                 await this.litNodeClient.connect();
             }
 
-            console.log(
-                "0",
-                userPrivateKey,
-                "\n1",
-                pkp,
-                "\n2",
-                wkAccessControlConditions,
-                "\n3",
-                solanaCipherText,
-                "\n4",
-                solanaDataToEncryptHash,
-                "\n5",
-                litTransaction
-            );
-
             const result = await this.litNodeClient.executeJs({
                 sessionSigs: await this.getSessionSigs(
                     userPrivateKey,
-                    pkp.publicKey,
+                    this.pkp.publicKey,
                     "pkp"
                 ),
-                ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk",
+                code: combinedCode,
                 jsParams: {
-                    pkpAddress: pkp.ethAddress,
+                    pkpAddress: this.pkp.ethAddress,
                     ciphertext: solanaCipherText,
                     dataToEncryptHash: solanaDataToEncryptHash,
                     unsignedTransaction: litTransaction,
-                    broadcast: false,
+                    broadcast: broadcastTransaction,
                     accessControlConditions: [wkAccessControlConditions],
                 },
             });
 
             console.log(result);
 
-            return result;
+            return result
         } catch (error) {
             console.error(error);
         } finally {
@@ -522,24 +511,29 @@ class LitWrapper {
         network,
         broadcastTransaction,
         userPrivateKey,
-        wkResponse,
+        wk,
         pkp,
     }: sendSolanaWKTxnWithSolParams) {
         if (pkp) {
             this.pkp = pkp;
         }
+        if (wk) {
+            this.wk = wk;
+        }
         if (!this.pkp) {
             throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
         }
 
         try {
             const litTransaction = await this.createSerializedLitTxn({
-                wkResponse,
+                wk,
                 toAddress,
                 amount,
                 network,
-                flag: FlagForLitTxn.SOL,
-                tokenMintAddress: undefined,
+                flag: FlagForLitTxn.SOL
             });
 
             await this.litNodeClient.connect();
@@ -547,25 +541,18 @@ class LitWrapper {
                 throw new Error("Failed to create Lit Transaction");
             }
 
-            const signedTransaction = await this.conditionalSigningOnSolana(
-                userPrivateKey,
-                this.pkp,
-                wkResponse,
-                litTransaction
-            );
-
-            // const signedTransaction = await signTransactionWithEncryptedKey({
-            //     pkpSessionSigs: await this.getSessionSigs(
-            //         userPrivateKey,
-            //         this.pkp.publicKey,
-            //         "pkp"
-            //     ),
-            //     network: "solana",
-            //     id: wkResponse.id,
-            //     unsignedTransaction: litTransaction,
-            //     broadcast: broadcastTransaction,
-            //     litNodeClient: this.litNodeClient,
-            // });
+            const signedTransaction = await signTransactionWithEncryptedKey({
+                pkpSessionSigs: await this.getSessionSigs(
+                    userPrivateKey,
+                    this.pkp.publicKey,
+                    "pkp"
+                ),
+                network: "solana",
+                id: this.wk.id,
+                unsignedTransaction: litTransaction,
+                broadcast: broadcastTransaction,
+                litNodeClient: this.litNodeClient,
+            });
             return signedTransaction;
         } catch (error) {
             console.error(error);
@@ -581,19 +568,25 @@ class LitWrapper {
         network,
         broadcastTransaction,
         userPrivateKey,
-        wkResponse,
+        wk,
         pkp,
     }: sendSolanaWKTxnWithCustomTokenParams) {
         if (pkp) {
             this.pkp = pkp;
         }
+        if (wk) {
+            this.wk = wk;
+        }
         if (!this.pkp) {
             throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
         }
 
         try {
             const litTransaction = await this.createSerializedLitTxn({
-                wkResponse,
+                wk: this.wk,
                 toAddress,
                 amount,
                 network,
@@ -614,7 +607,7 @@ class LitWrapper {
                     "pkp"
                 ),
                 network: "solana",
-                id: wkResponse.id,
+                id: this.wk.id,
                 unsignedTransaction: litTransaction,
                 broadcast: broadcastTransaction,
                 litNodeClient: this.litNodeClient,
@@ -628,16 +621,23 @@ class LitWrapper {
     }
 
     async createSerializedLitTxn({
-        wkResponse,
         toAddress,
         amount,
         network,
         flag,
         tokenMintAddress,
+        wk,
     }: createSerializedLitTxnParams) {
+        if (wk) {
+            this.wk = wk;
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
+        }
+
         try {
             const generatedSolanaPublicKey = new PublicKey(
-                wkResponse.generatedPublicKey
+                this.wk.generatedPublicKey
             );
 
             const receiverPublicKey = new PublicKey(toAddress);
@@ -855,4 +855,4 @@ class LitTester {
     }
 }
 
-export { LitWrapper, LitTester };
+export { LitWrapper, LitTester, FlagForLitTxn };

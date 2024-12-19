@@ -26,8 +26,8 @@
     "prepare": "npm run build",
     "test": "mocha --loader=ts-node/esm test/**/*.ts",
     "example": "cd examples && node src/tester",
-    "test:pre": "node --loader ts-node/esm test/pre-build-test",
-    "test:post": "node test/post-build-test"
+    "test:pre": "node --loader ts-node/esm test/pre-build-test-script",
+    "test:post": "node test/post-build-test-script"
   },
   "dependencies": {
     "@lit-protocol/auth-helpers": "^7.0.0-alpha.9",
