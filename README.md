@@ -1,6 +1,7 @@
 ## Lit Wrapper SDK
 
-Using Lit has never been easier before
+Using Lit Network has never been easier before
+</br> An Ethereum private key is used to send requests to the Lit Network. Fund your wallet with a [faucet](https://chronicle-yellowstone-faucet.getlit.dev/) on Lit's custom rollup chain.
 
 ## Installation
 
@@ -12,7 +13,7 @@ npm install lit-wrapper-sdk
 
 ### 1) Creating a Key on Solana and Sending Transaction
 
-Using Lit to create a Solana Key and Send a Txn with it, an Ethereum private key works as an auth method for generating signatures with a newly created Solana Key
+Using Lit to create a Solana Key and send a Txn with it, an Ethereum private key is used as an auth method for generating signatures with a newly created Solana Key. 
 
 ```js
 import { LitWrapper } from "lit-wrapper-sdk";
@@ -55,7 +56,7 @@ async function sendBONKTxn() {
 
 ### 2) Creating a key on EVM and Executing a Lit Action
 
-Create a key, Upload Lit Action to IPFS, Permit on IPFS and Execute the action
+Create a key, Upload Lit Action to IPFS, Permit on IPFS and Execute the action.
 
 ```js
 import { LitWrapper } from "lit-wrapper-sdk";
@@ -98,7 +99,7 @@ async function createKeyAndExecuteAction() {
 
 ### 3) Testing a Lit Action
 
-Instantly create a Lit Action and test its execution over Lit Network
+Instantly create a Lit Action and test its execution over Lit Network.
 
 ```js
 async function testAction() {
