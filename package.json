@@ -35,6 +35,7 @@
     "@lit-protocol/contracts-sdk": "^7.0.0-alpha.9",
     "@lit-protocol/lit-auth-client": "^7.0.0-alpha.9",
     "@lit-protocol/lit-node-client": "^7.0.0-alpha.9",
+    "@lit-protocol/lit-node-client-nodejs": "^7.0.2",
     "@lit-protocol/wrapped-keys": "^7.0.0-alpha.9",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.95.8",

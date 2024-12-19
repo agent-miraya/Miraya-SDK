@@ -36,8 +36,8 @@ async function sendSolTxn() {
     const signedTx = await litWrapper.sendSolanaWKTxnWithSol({
         amount: 0.0022 * Math.pow(10, 9),
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
-        network: "mainnet-beta",
-        broadcastTransaction: true,
+        network: "devnet",
+        broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         wkResponse: res.wkInfo,
         pkp: res.pkpInfo,
@@ -48,7 +48,7 @@ async function sendSolTxn() {
 async function sendBONKTxn() {
     const signedTx = await litWrapper.sendSolanaWKTxnWithCustomToken({
         tokenMintAddress: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK MINT TOKEN
-        amount: 4 * Math.pow(10, 5),
+        amount: 2 * Math.pow(10, 5),
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
         network: "mainnet-beta",
         broadcastTransaction: true,
@@ -67,7 +67,7 @@ async function generateSolanaWalletAndSendSolTxn() {
         amount: 0.0022 * Math.pow(10, 9),
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
         network: "mainnet-beta",
-        broadcastTransaction: true,
+        broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         wkResponse: res.wkInfo,
         pkp: res.pkpInfo,
@@ -75,7 +75,14 @@ async function generateSolanaWalletAndSendSolTxn() {
     console.log("Transaction Hash: ", signedTx);
 }
 
+async function haha() {
+    const response = await litWrapper.haha(ETHEREUM_PRIVATE_KEY, res.pkpInfo, res.wkInfo);
+    console.log(response)
+}
+
+
 // generateSolanaWallet()
-// sendSolTxn()
-sendBONKTxn()
+sendSolTxn()
+// sendBONKTxn()
 // generateSolanaWalletAndSendSolTxn()
+// haha()
