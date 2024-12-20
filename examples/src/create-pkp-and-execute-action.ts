@@ -32,7 +32,7 @@ async function createKeyAndExecuteAction() {
     const { pkp, ipfsCID } = await litWrapper.createPKPWithLitAction({
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         litActionCode,
-        pinataAPI: PINATA_API_KEY,
+        pinataAPIKey: PINATA_API_KEY,
     });
 
     const resolvedIpfsCID = await ipfsCID;

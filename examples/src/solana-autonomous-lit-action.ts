@@ -12,7 +12,7 @@ if (!ETHEREUM_PRIVATE_KEY) {
 
 async function createLitActionAndSignSolanaTxn() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
-    console.log("Solana Public Key", response);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
 
     const conditionLogic = `
     const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";

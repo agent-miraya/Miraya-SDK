@@ -54,7 +54,48 @@ async function sendBONKTxn() {
 }
 ```
 
-### 2) Creating a key on EVM and Executing a Lit Action
+### 2) Creating Conditioned Signing on Solana
+
+Checks against a conditional logic and only creates signatures for a specified transaction when condition is satisfies
+
+```js
+async function createLitActionAndSignSolanaTxn() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
+
+    const conditionLogic = `
+    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
+    const resp = await fetch(url).then((response) => response.json());
+    const temp = resp.properties.periods[0].temperature;
+
+    console.log(temp);
+
+    // only sign if the temperature is below 60
+    if (temp < 60) {
+        createSignatureWithAction();
+    }`;
+
+    const txn = await litWrapper.createSerializedLitTxn({
+        wk: response?.wkInfo,
+        toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
+        amount: 0.004 * Math.pow(10, 9),
+        network: "mainnet-beta",
+        flag: FlagForLitTxn.SOL,
+    });
+
+    const checkResult = await litWrapper.conditionalSigningOnSolana({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        litTransaction: txn,
+        conditionLogic,
+        broadcastTransaction: true,
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
+    });
+    console.log(checkResult);
+}
+```
+
+### 3) Creating a key on EVM and Executing a Lit Action
 
 Create a key, Upload Lit Action to IPFS, Permit on IPFS and Execute the action.
 
@@ -97,7 +138,7 @@ async function createKeyAndExecuteAction() {
 }
 ```
 
-### 3) Testing a Lit Action
+### 4) Testing a Lit Action
 
 Instantly create a Lit Action and test its execution over Lit Network.
 
