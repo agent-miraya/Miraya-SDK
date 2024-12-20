@@ -289,18 +289,20 @@ class LitWrapper {
     }
 
     async createSolanaWK(userPrivateKey: string) {
-        const litNodeClient = new LitNodeClient({
-            litNetwork: this.litNetwork,
-            debug: false,
-        });
         try {
-            await this.createPKP(userPrivateKey);
-
+            
+            if (!this.pkp) {
+                await this.createPKP(userPrivateKey);
+            }
             if (!this.pkp) {
                 throw new Error("PKP not initialized");
             }
+            console.log("PKP: ", this.pkp);
+            
+            if (!this.litNodeClient.ready) {
+                await this.litNodeClient.connect();
+            }
 
-            console.log("starting to generate wrapped key");
             const wrappedKeyInfo = await generatePrivateKey({
                 pkpSessionSigs: await this.getSessionSigs(
                     userPrivateKey,
@@ -309,9 +311,8 @@ class LitWrapper {
                 ),
                 network: "solana",
                 memo: "This is a test memo",
-                litNodeClient,
+                litNodeClient: this.litNodeClient,
             });
-            console.log("wrapped key generated", wrappedKeyInfo);
 
             if (!wrappedKeyInfo) {
                 throw new Error("Failed to generate wrapped key");
@@ -327,7 +328,7 @@ class LitWrapper {
         } catch (error) {
             console.error;
         } finally {
-            litNodeClient?.disconnect();
+            this.litNodeClient?.disconnect();
         }
     }
 
@@ -467,7 +468,10 @@ class LitWrapper {
                 flag: FlagForLitTxn.SOL,
             });
 
-            await this.litNodeClient.connect();
+            if (!this.litNodeClient.ready) {
+                await this.litNodeClient.connect();
+            }
+
             if (!litTransaction) {
                 throw new Error("Failed to create Lit Transaction");
             }
@@ -529,7 +533,9 @@ class LitWrapper {
                 throw new Error("Failed to create Lit Transaction");
             }
 
-            await this.litNodeClient.connect();
+            if (!this.litNodeClient.ready) {
+                await this.litNodeClient.connect();
+            }
 
             const signedTransaction = await signTransactionWithEncryptedKey({
                 pkpSessionSigs: await this.getSessionSigs(
