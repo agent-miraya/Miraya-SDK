@@ -16,7 +16,6 @@ import {
     SystemProgram,
     Transaction,
     clusterApiUrl,
-    Cluster
 } from "@solana/web3.js";
 import { api } from "@lit-protocol/wrapped-keys";
 const { generatePrivateKey, signTransactionWithEncryptedKey, getEncryptedKey } =
@@ -26,88 +25,20 @@ import {
     createAssociatedTokenAccountInstruction,
     createTransferInstruction,
 } from "@solana/spl-token";
-
-interface PKP {
-    tokenId: string;
-    publicKey: string;
-    ethAddress: string;
-}
-
-interface WK {
-    pkpAddress: string;
-    id: string;
-    generatedPublicKey: string;
-}
-
-interface addPermittedActionParams {
-    userPrivateKey: string;
-    pkpTokenId: string;
-    litActionCode: string;
-    pinataAPI: string;
-}
-
-interface uploadViaPinataParams {
-    pinataAPI: string;
-    litActionCode: string;
-}
-
-interface createPKPWithLitActionParams {
-    userPrivateKey: string;
-    litActionCode: string;
-    pinataAPI: string;
-}
-
-interface executeLitActionParams {
-    userPrivateKey: string;
-    pkpPublicKey: string;
-    litActionIpfsCid?: string;
-    litActionCode?: string;
-    params?: Object;
-}
-
-enum FlagForLitTxn {
-    SOL,
-    CUSTOM,
-}
-
-interface conditionalSigningOnSolanaParams {
-    userPrivateKey: string,
-    litTransaction: any,
-    broadcastTransaction: boolean,
-    conditionLogic: string
-    pkp?: PKP,
-    wk?: WK,
-}
-
-interface createSerializedLitTxnParams {
-    toAddress: string;
-    amount: number;
-    network: Cluster;
-    flag: FlagForLitTxn;
-    tokenMintAddress?: string;
-    wk?: WK;
-}
-
-interface sendSolanaWKTxnWithSolParams {
-    amount: number;
-    toAddress: string;
-    network: Cluster;
-    broadcastTransaction: boolean;
-    userPrivateKey: string;
-    wk?: WK;
-    pkp?: PKP;
-}
-
-interface sendSolanaWKTxnWithCustomTokenParams {
-    tokenMintAddress: string;
-    amount: number;
-    toAddress: string;
-    network: Cluster;
-    broadcastTransaction: boolean;
-    userPrivateKey: string;
-    wk?: WK;
-    pkp?: PKP;
-}
+import {
+    PKP,
+    WK,
+    AddPermittedActionParams,
+    UploadViaPinataParams,
+    CreatePKPWithLitActionParams,
+    ExecuteLitActionParams,
+    ConditionalSigningOnSolanaParams,
+    CreateSerializedLitTxnParams,
+    SendSolanaWKTxnWithSolParams,
+    SendSolanaWKTxnWithCustomTokenParams,
+    TestLitActionParams,
+    FlagForLitTxn,
+} from "./types.js";
 
 class LitWrapper {
     private litNodeClient: LitNodeClient;
@@ -154,10 +85,10 @@ class LitWrapper {
         userPrivateKey,
         pkpTokenId,
         litActionCode,
-        pinataAPI,
-    }: addPermittedActionParams) {
+        pinataAPIKey,
+    }: AddPermittedActionParams) {
         const ipfsCID = await this.uploadViaPinata({
-            pinataAPI,
+            pinataAPIKey,
             litActionCode,
         });
 
@@ -182,7 +113,7 @@ class LitWrapper {
         return ipfsCID;
     }
 
-    async uploadViaPinata({ pinataAPI, litActionCode }: uploadViaPinataParams) {
+    async uploadViaPinata({ pinataAPIKey, litActionCode }: UploadViaPinataParams) {
         const formData = new FormData();
 
         const file = new File([litActionCode], "Action.txt", {
@@ -204,13 +135,12 @@ class LitWrapper {
             {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${pinataAPI}`,
+                    Authorization: `Bearer ${pinataAPIKey}`,
                 },
                 body: formData,
             }
         );
         const response = await request.json();
-        console.log(response);
         return response.IpfsHash;
     }
 
@@ -257,8 +187,8 @@ class LitWrapper {
     async createPKPWithLitAction({
         userPrivateKey,
         litActionCode,
-        pinataAPI,
-    }: createPKPWithLitActionParams) {
+        pinataAPIKey,
+    }: CreatePKPWithLitActionParams) {
         await this.createPKP(userPrivateKey);
         if (!this.pkp) {
             throw new Error("PKP not initialized");
@@ -268,7 +198,7 @@ class LitWrapper {
             userPrivateKey,
             pkpTokenId: this.pkp.tokenId,
             litActionCode,
-            pinataAPI,
+            pinataAPIKey,
         });
         let pkp = this.pkp;
         return { pkp, ipfsCID };
@@ -336,7 +266,7 @@ class LitWrapper {
         litActionIpfsCid,
         litActionCode,
         params,
-    }: executeLitActionParams) {
+    }: ExecuteLitActionParams) {
         try {
             if (!this.litNodeClient.ready) {
                 await this.litNodeClient.connect();
@@ -352,7 +282,6 @@ class LitWrapper {
                 code: litActionCode,
                 jsParams: { ...params },
             });
-
             return result;
         } catch (error) {
             console.error(error);
@@ -371,6 +300,7 @@ class LitWrapper {
                 throw new Error("PKP not initialized");
             }
 
+            console.log("starting to generate wrapped key");
             const wrappedKeyInfo = await generatePrivateKey({
                 pkpSessionSigs: await this.getSessionSigs(
                     userPrivateKey,
@@ -381,6 +311,7 @@ class LitWrapper {
                 memo: "This is a test memo",
                 litNodeClient,
             });
+            console.log("wrapped key generated", wrappedKeyInfo);
 
             if (!wrappedKeyInfo) {
                 throw new Error("Failed to generate wrapped key");
@@ -391,7 +322,7 @@ class LitWrapper {
                 wkInfo: wrappedKeyInfo as WK,
             };
 
-            console.log("res: ", response);
+            console.log("WK: ", response.wkInfo);
             return response;
         } catch (error) {
             console.error;
@@ -406,8 +337,8 @@ class LitWrapper {
         wk,
         litTransaction,
         broadcastTransaction,
-        conditionLogic
-    }: conditionalSigningOnSolanaParams) {
+        conditionLogic,
+    }: ConditionalSigningOnSolanaParams) {
         if (pkp) {
             this.pkp = pkp;
         }
@@ -440,7 +371,7 @@ class LitWrapper {
             const combinedCode = `
             async function createSignatureWithAction() {
                 const response = await Lit.Actions.call({ 
-                    ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk", 
+                    ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk", // Lit Action for signing on Solana
                     params: {
                         accessControlConditions,
                         ciphertext,
@@ -454,7 +385,10 @@ class LitWrapper {
             async function run() {
                 try {
                     let response;
-                    ${conditionLogic.replace('createSignatureWithAction();', 'response = await createSignatureWithAction();')}
+                    ${conditionLogic.replace(
+                        "createSignatureWithAction();",
+                        "response = await createSignatureWithAction();"
+                    )}
                     Lit.Actions.setResponse({ response: response });
                 } catch (error) {
                     Lit.Actions.setResponse({ response: error.message });
@@ -494,10 +428,7 @@ class LitWrapper {
                     accessControlConditions: [wkAccessControlConditions],
                 },
             });
-
-            console.log(result);
-
-            return result
+            return result;
         } catch (error) {
             console.error(error);
         } finally {
@@ -513,7 +444,7 @@ class LitWrapper {
         userPrivateKey,
         wk,
         pkp,
-    }: sendSolanaWKTxnWithSolParams) {
+    }: SendSolanaWKTxnWithSolParams) {
         if (pkp) {
             this.pkp = pkp;
         }
@@ -533,7 +464,7 @@ class LitWrapper {
                 toAddress,
                 amount,
                 network,
-                flag: FlagForLitTxn.SOL
+                flag: FlagForLitTxn.SOL,
             });
 
             await this.litNodeClient.connect();
@@ -570,7 +501,7 @@ class LitWrapper {
         userPrivateKey,
         wk,
         pkp,
-    }: sendSolanaWKTxnWithCustomTokenParams) {
+    }: SendSolanaWKTxnWithCustomTokenParams) {
         if (pkp) {
             this.pkp = pkp;
         }
@@ -627,7 +558,7 @@ class LitWrapper {
         flag,
         tokenMintAddress,
         wk,
-    }: createSerializedLitTxnParams) {
+    }: CreateSerializedLitTxnParams) {
         if (wk) {
             this.wk = wk;
         }
@@ -748,11 +679,6 @@ class LitWrapper {
     }
 }
 
-interface testLitActionParams {
-    litActionCode: string;
-    params: Object;
-}
-
 class LitTester {
     public litNetwork: LIT_NETWORKS_KEYS;
     public pkp: PKP | null;
@@ -801,7 +727,7 @@ class LitTester {
         }
     }
 
-    async testLitAction({ litActionCode, params }: testLitActionParams) {
+    async testLitAction({ litActionCode, params }: TestLitActionParams) {
         if (!this.pkp) {
             throw new Error("PKP not initialized");
         }

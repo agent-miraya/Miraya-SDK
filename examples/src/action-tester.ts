@@ -2,12 +2,12 @@ import { LitTester } from "lit-wrapper-sdk";
 import * as ethers from "ethers";
 import "dotenv/config";
 
-async function test() {
+async function actionTester() {
     if (!process.env.ETHEREUM_PRIVATE_KEY) {
         throw new Error("ETHEREUM_PRIVATE_KEY is not set");
     }
 
-    const _litActionCode = async () => {
+    const litActionCode = `(async () => {
         try {
             const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
                 message: dataToSign,
@@ -18,8 +18,7 @@ async function test() {
         } catch (error) {
             Lit.Actions.setResponse({ response: error.message });
         }
-    };
-    const litActionCode = `(${_litActionCode.toString()})();`;
+    }) ()`;
 
     const tester = await LitTester.init(
         process.env.ETHEREUM_PRIVATE_KEY,
@@ -32,10 +31,13 @@ async function test() {
                 ethers.utils.keccak256([1, 2, 3, 4, 5])
             ),
             sigName: "sig1",
-        }
+        },
     ];
 
-    const results = await tester.testLitAction(litActionCode, params[0]);
+    const results = await tester.testLitAction({
+        litActionCode,
+        params: params[0],
+    });
     console.log("Test Results: ", results);
 }
-test();
+actionTester();

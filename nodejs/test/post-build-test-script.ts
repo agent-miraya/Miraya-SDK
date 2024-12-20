@@ -1,15 +1,17 @@
-import { LitWrapper, LitTester, FlagForLitTxn } from "../src/index.ts";
+import { LitWrapper, LitTester } from "../dist/index.js";
+import { FlagForLitTxn } from "../dist/types.js";
+import * as ethers from "ethers";
 import "dotenv/config";
 
 const litWrapper = new LitWrapper("datil-dev");
 
-const ETHEREUM_PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY;
+const ETHEREUM_PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY as string;
 
 if (!ETHEREUM_PRIVATE_KEY) {
     throw new Error("ETHEREUM_PRIVATE_KEY is required");
 }
 
-let res = {
+let dummyResponse = {
     pkpInfo: {
         tokenId:
             "0xe152d8bcd8761f32ef445e611952172f59cd30ae66daa4309446b3528fe054de",
@@ -24,28 +26,71 @@ let res = {
     },
 };
 
+async function actionTester() {
+    if (!process.env.ETHEREUM_PRIVATE_KEY) {
+        throw new Error("ETHEREUM_PRIVATE_KEY is not set");
+    }
+
+    const litActionCode =
+    `(async () => {
+        try {
+            const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
+                message: dataToSign,
+                publicKey: pkpPublicKey,
+                sigName,
+            });
+            Lit.Actions.setResponse({ response: sigShare });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    }) ()`;
+
+    const tester = await LitTester.init(
+        process.env.ETHEREUM_PRIVATE_KEY,
+        "datil-dev"
+    );
+
+    const params = [
+        {
+            dataToSign: ethers.utils.arrayify(
+                ethers.utils.keccak256([1, 2, 3, 4, 5])
+            ),
+            sigName: "sig1",
+        },
+    ];
+
+    const results = await tester.testLitAction({litActionCode, params: params[0]});
+    console.log("Test Results: ", results);
+}
+
 async function generateSolanaWallet() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     console.log(
         "Fund this address with bonk and gas sol",
-        response.wkInfo.generatedPublicKey
+        response?.wkInfo.generatedPublicKey
     );
 }
 
 async function sendSolTxn() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
+
     const signedTx = await litWrapper.sendSolanaWKTxnWithSol({
-        amount: 0.0022 * Math.pow(10, 9),
+        amount: 0.004 * Math.pow(10, 9),
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
         network: "devnet",
         broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wk: res.wkInfo,
-        pkp: res.pkpInfo,
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
 }
 
 async function sendBONKTxn() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
+
     const signedTx = await litWrapper.sendSolanaWKTxnWithCustomToken({
         tokenMintAddress: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK MINT TOKEN
         amount: 2 * Math.pow(10, 5),
@@ -53,29 +98,32 @@ async function sendBONKTxn() {
         network: "mainnet-beta",
         broadcastTransaction: true,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wk: res.wkInfo,
-        pkp: res.pkpInfo,
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
 }
 
 async function generateSolanaWalletAndSendSolTxn() {
-    const res = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
-    console.log("Solana Public Key", res.wkInfo.generatedPublicKey);
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
 
     const signedTx = await litWrapper.sendSolanaWKTxnWithSol({
-        amount: 0.0022 * Math.pow(10, 9),
+        amount: 0.004 * Math.pow(10, 9),
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
         network: "mainnet-beta",
         broadcastTransaction: false,
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        wk: res.wkInfo,
-        pkp: res.pkpInfo,
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
     });
     console.log("Transaction Hash: ", signedTx);
 }
 
 async function createLitActionAndSignSolanaTxn() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response);
+
     const conditionLogic = `
     const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
     const resp = await fetch(url).then((response) => response.json());
@@ -89,27 +137,27 @@ async function createLitActionAndSignSolanaTxn() {
     }`;
 
     const txn = await litWrapper.createSerializedLitTxn({
-        wk: res.wkInfo,
+        wk: response?.wkInfo,
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
-        amount: 0.0022 * Math.pow(10, 9),
+        amount: 0.004 * Math.pow(10, 9),
         network: "mainnet-beta",
         flag: FlagForLitTxn.SOL,
     });
-    
-    const response = await litWrapper.conditionalSigningOnSolana({
+
+    const checkResult = await litWrapper.conditionalSigningOnSolana({
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         litTransaction: txn,
         conditionLogic,
         broadcastTransaction: false,
-        wk: res.wkInfo,
-        pkp: res.pkpInfo,
-    }
-    );
-    console.log(response);
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
+    });
+    console.log(checkResult);
 }
 
-// generateSolanaWallet()
-// sendSolTxn()
-// sendBONKTxn()
-// generateSolanaWalletAndSendSolTxn()
+// actionTester();
+// generateSolanaWallet();
+// sendSolTxn();
+// sendBONKTxn();
+// generateSolanaWalletAndSendSolTxn();
 createLitActionAndSignSolanaTxn();
