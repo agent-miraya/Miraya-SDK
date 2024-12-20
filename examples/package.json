@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "tester": "node src/tester"
+    "tester": "node src/tester",
+    "example:1": "npx tsx src/action-tester",
+    "example:2": "npx tsx src/create-pkp-and-execute-action",
+    "example:3": "npx tsx src/solana-autonomous-lit-action",
+    "example:4": "npx tsx src/solana-txn"
   },
   "license": "MIT",
   "dependencies": {
@@ -11,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }
