@@ -46,6 +46,7 @@ export interface ConditionalSigningOnSolanaParams {
     conditionLogic: string;
     pkp?: PKP;
     wk?: WK;
+    params?: Object;
 }
 
 export interface CreateSerializedLitTxnParams {

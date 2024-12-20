@@ -130,6 +130,7 @@ async function createLitActionAndSignSolanaTxn() {
     const temp = resp.properties.periods[0].temperature;
 
     console.log(temp);
+    console.log(test_api_key)
 
     // only sign if the temperature is below 60
     if (temp < 60) {
@@ -151,6 +152,9 @@ async function createLitActionAndSignSolanaTxn() {
         broadcastTransaction: false,
         wk: response?.wkInfo,
         pkp: response?.pkpInfo,
+        params: {
+            test_api_key: "1234",
+        },
     });
     console.log(checkResult);
 }

@@ -339,6 +339,7 @@ class LitWrapper {
         litTransaction,
         broadcastTransaction,
         conditionLogic,
+        params
     }: ConditionalSigningOnSolanaParams) {
         if (pkp) {
             this.pkp = pkp;
@@ -427,6 +428,7 @@ class LitWrapper {
                     unsignedTransaction: litTransaction,
                     broadcast: broadcastTransaction,
                     accessControlConditions: [wkAccessControlConditions],
+                    ...params,
                 },
             });
             return result;
