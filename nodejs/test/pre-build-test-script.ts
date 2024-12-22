@@ -31,8 +31,7 @@ async function actionTester() {
         throw new Error("ETHEREUM_PRIVATE_KEY is not set");
     }
 
-    const litActionCode =
-    `(async () => {
+    const litActionCode = `(async () => {
         try {
             const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
                 message: dataToSign,
@@ -59,7 +58,10 @@ async function actionTester() {
         },
     ];
 
-    const results = await tester.testLitAction({litActionCode, params: params[0]});
+    const results = await tester.testLitAction({
+        litActionCode,
+        params: params[0],
+    });
     console.log("Test Results: ", results);
 }
 
@@ -124,7 +126,7 @@ async function createLitActionAndSignSolanaTxn() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
 
-    const conditionLogic = `
+    const conditionalLogic = `
     const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
     const resp = await fetch(url).then((response) => response.json());
     const temp = resp.properties.periods[0].temperature;
@@ -136,7 +138,7 @@ async function createLitActionAndSignSolanaTxn() {
     if (temp < 60) {
         createSignatureWithAction();
     }`;
-
+    
     const txn = await litWrapper.createSerializedLitTxn({
         wk: response?.wkInfo,
         toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
@@ -148,7 +150,7 @@ async function createLitActionAndSignSolanaTxn() {
     const checkResult = await litWrapper.conditionalSigningOnSolana({
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         litTransaction: txn,
-        conditionLogic,
+        conditionalLogic,
         broadcastTransaction: false,
         wk: response?.wkInfo,
         pkp: response?.pkpInfo,

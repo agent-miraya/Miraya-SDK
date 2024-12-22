@@ -124,7 +124,7 @@ async function createLitActionAndSignSolanaTxn() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
 
-    const conditionLogic = `
+    const conditionalLogic = `
     const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
     const resp = await fetch(url).then((response) => response.json());
     const temp = resp.properties.periods[0].temperature;
@@ -147,7 +147,7 @@ async function createLitActionAndSignSolanaTxn() {
     const checkResult = await litWrapper.conditionalSigningOnSolana({
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
         litTransaction: txn,
-        conditionLogic,
+        conditionalLogic,
         broadcastTransaction: false,
         wk: response?.wkInfo,
         pkp: response?.pkpInfo,

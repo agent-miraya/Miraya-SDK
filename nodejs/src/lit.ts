@@ -33,12 +33,15 @@ import {
     CreatePKPWithLitActionParams,
     ExecuteLitActionParams,
     ConditionalSigningOnSolanaParams,
+    ExecuteCustomActionOnSolanaParams,
     CreateSerializedLitTxnParams,
     SendSolanaWKTxnWithSolParams,
     SendSolanaWKTxnWithCustomTokenParams,
     TestLitActionParams,
     FlagForLitTxn,
 } from "./types.js";
+// @ts-ignore
+import { litAction } from "./actions/litAction.js";
 
 class LitWrapper {
     private litNodeClient: LitNodeClient;
@@ -334,11 +337,11 @@ class LitWrapper {
 
     async conditionalSigningOnSolana({
         userPrivateKey,
-        pkp,
-        wk,
         litTransaction,
         broadcastTransaction,
-        conditionLogic,
+        conditionalLogic,
+        pkp,
+        wk,
         params
     }: ConditionalSigningOnSolanaParams) {
         if (pkp) {
@@ -370,33 +373,87 @@ class LitWrapper {
                 id: this.wk.id,
             });
 
-            const combinedCode = `
-            async function createSignatureWithAction() {
-                const response = await Lit.Actions.call({ 
-                    ipfsId: "QmR1nPG2tnmC72zuCEMZUZrrMEkbDiMPNHW45Dsm2n7xnk", // Lit Action for signing on Solana
-                    params: {
-                        accessControlConditions,
-                        ciphertext,
-                        dataToEncryptHash,
-                        unsignedTransaction,
-                        broadcast: false,
-                    }
-                });
-                return response;
+            const wkAccessControlConditions: Object = {
+                contractAddress: "",
+                standardContractType: "",
+                chain: "ethereum",
+                method: "",
+                parameters: [":userAddress"],
+                returnValueTest: {
+                    comparator: "=",
+                    value: this.pkp.ethAddress,
+                },
+            };
+
+            if (!this.litNodeClient.ready) {
+                await this.litNodeClient.connect();
             }
-            async function run() {
-                try {
-                    let response;
-                    ${conditionLogic.replace(
-                        "createSignatureWithAction();",
-                        "response = await createSignatureWithAction();"
-                    )}
-                    Lit.Actions.setResponse({ response: response });
-                } catch (error) {
-                    Lit.Actions.setResponse({ response: error.message });
-                }
-            }
-            run();`;
+
+            const combinedCode = litAction(conditionalLogic);
+
+            const result = await this.litNodeClient.executeJs({
+                sessionSigs: await this.getSessionSigs(
+                    userPrivateKey,
+                    this.pkp.publicKey,
+                    "pkp"
+                ),
+                code: combinedCode,
+                jsParams: {
+                    pkpAddress: this.pkp.ethAddress,
+                    ciphertext: solanaCipherText,
+                    dataToEncryptHash: solanaDataToEncryptHash,
+                    unsignedTransaction: litTransaction,
+                    broadcast: broadcastTransaction,
+                    accessControlConditions: [wkAccessControlConditions],
+                    ...params,
+                },
+            });
+            return result;
+            // return false;
+        } catch (error) {
+            console.error(error);
+        } finally {
+            this.litNodeClient?.disconnect();
+        }
+    }
+
+    async executeCustomActionOnSolana({
+        userPrivateKey,
+        litTransaction,
+        broadcastTransaction,
+        litActionCode,
+        pkp,
+        wk,
+        params
+    }: ExecuteCustomActionOnSolanaParams) {
+        if (pkp) {
+            this.pkp = pkp;
+        }
+        if (wk) {
+            this.wk = wk;
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
+        }
+
+        try {
+            this.litNodeClient.connect();
+
+            const {
+                ciphertext: solanaCipherText,
+                dataToEncryptHash: solanaDataToEncryptHash,
+            } = await getEncryptedKey({
+                pkpSessionSigs: await this.getSessionSigs(
+                    userPrivateKey,
+                    this.pkp.publicKey,
+                    "pkp"
+                ),
+                litNodeClient: this.litNodeClient,
+                id: this.wk.id,
+            });
 
             const wkAccessControlConditions: Object = {
                 contractAddress: "",
@@ -420,7 +477,7 @@ class LitWrapper {
                     this.pkp.publicKey,
                     "pkp"
                 ),
-                code: combinedCode,
+                code: litActionCode,
                 jsParams: {
                     pkpAddress: this.pkp.ethAddress,
                     ciphertext: solanaCipherText,
@@ -432,6 +489,7 @@ class LitWrapper {
                 },
             });
             return result;
+            // return false;
         } catch (error) {
             console.error(error);
         } finally {

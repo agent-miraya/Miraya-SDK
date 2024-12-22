@@ -43,7 +43,17 @@ export interface ConditionalSigningOnSolanaParams {
     userPrivateKey: string;
     litTransaction: any;
     broadcastTransaction: boolean;
-    conditionLogic: string;
+    conditionalLogic: string;
+    pkp?: PKP;
+    wk?: WK;
+    params?: Object;
+}
+
+export interface ExecuteCustomActionOnSolanaParams {
+    userPrivateKey: string;
+    litTransaction: any;
+    broadcastTransaction: boolean;
+    litActionCode: string;
     pkp?: PKP;
     wk?: WK;
     params?: Object;
