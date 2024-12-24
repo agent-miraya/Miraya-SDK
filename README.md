@@ -554,7 +554,56 @@ async function createLitActionAndSignSolanaTxn() {
 }
 ```
 
-### 3) Creating a key on EVM and Executing a Lit Action
+### 3) Executing Custom AI Powered Lit Actions
+
+```js
+async function executeCustomLitAction() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const litActionCode = `
+    const go = async () => {
+        try {
+            const callAI = await LitActions.runOnce({ 
+                waitForResponse: true, name: "Lit Actions Test" },
+                async () => {
+                    const messages = [
+                        { role: "system", content: "You are an AI assistant. Only answer with a single sentence." },
+                    ];
+                    const response = await fetch(
+                    "https://api.openai.com/v1/chat/completions",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: \`Bearer \${apiKey}\`,
+                        },
+                        body: JSON.stringify({ model: "gpt -4o-mini", messages }),
+                    });
+                    const json = await response.json();
+                    console.log(json);
+                    return json.choices[0].message;
+                });
+            console.log(callAI);
+            Lit.Actions.setResponse({ response: callAI });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    }; go();`;
+
+    const result = await litWrapper.executeCustomActionOnSolana({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        litActionCode,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+        params: {
+            apiKey: process.env.OPEN_AI_API_KEY,
+        },
+    });
+    console.log(result);
+}
+```
+
+
+### 4) Creating a key on EVM and Executing a Lit Action
 
 Create a key, Upload Lit Action to IPFS, Permit on IPFS and Execute the action.
 
@@ -597,7 +646,7 @@ async function createKeyAndExecuteAction() {
 }
 ```
 
-### 4) Testing a Lit Action
+### 5) Testing a Lit Action
 
 Instantly create a Lit Action and test its execution over Lit Network.
 
