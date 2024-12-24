@@ -9,6 +9,405 @@ Using Lit Network has never been easier before
 npm install lit-wrapper-sdk
 ```
 
+## API/Method References
+
+### `LitWrapper` Class
+
+#### Constructor
+```typescript
+constructor(litNetwork: LIT_NETWORKS_KEYS)
+```
+- Initializes a new instance of the `LitWrapper` class.
+- **Parameters:**
+  - `litNetwork`: The Lit network key.
+
+#### Methods
+
+##### `createPKP`
+```typescript
+async createPKP(userPrivateKey: string): Promise<PKP | undefined>
+```
+- Creates a PKP (Programmable Key Pair).
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+- **Returns:** The created PKP.
+
+##### `addPermittedAction`
+```typescript
+async addPermittedAction(params: AddPermittedActionParams): Promise<{ ipfsCID: string, response: any }>
+```
+- Adds a permitted action to a PKP.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkpTokenId`, `litActionCode`, and `pinataAPIKey`.
+- **Returns:** An object containing the IPFS CID and the response.
+
+##### `addAuthAddress`
+```typescript
+async addAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: string): Promise<any>
+```
+- Adds an authorized address to a PKP.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpTokenId`: The PKP token ID.
+  - `ethAddress`: The Ethereum address to authorize.
+- **Returns:** The response from the Lit network.
+
+##### `uploadViaPinata`
+```typescript
+async uploadViaPinata(params: UploadViaPinataParams): Promise<string>
+```
+- Uploads a file to Pinata.
+- **Parameters:**
+  - `params`: An object containing `pinataAPIKey` and `litActionCode`.
+- **Returns:** The IPFS hash of the uploaded file.
+
+##### `checkPermits`
+```typescript
+async checkPermits(pkpTokenId: string): Promise<{ actions: any[], authMethods: any[], addresses: any[] }>
+```
+- Checks the permits of a PKP.
+- **Parameters:**
+  - `pkpTokenId`: The PKP token ID.
+- **Returns:** An object containing the permitted actions, auth methods, and addresses.
+
+##### `createPKPWithLitAction`
+```typescript
+async createPKPWithLitAction(params: CreatePKPWithLitActionParams): Promise<{ pkp: PKP, ipfsCID: string }>
+```
+- Creates a PKP and adds a permitted action.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `litActionCode`, and `pinataAPIKey`.
+- **Returns:** An object containing the created PKP and the IPFS CID.
+
+##### `createPKPSessionSigs`
+```typescript
+async createPKPSessionSigs(userPrivateKey: string, pkpPublicKey: string): Promise<any>
+```
+- Creates session signatures for a PKP.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpPublicKey`: The PKP public key.
+- **Returns:** The session signatures.
+
+##### `getSessionSigs`
+```typescript
+async getSessionSigs(userPrivateKey: string, pkpPublicKey: string, type: string): Promise<any>
+```
+- Gets session signatures.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpPublicKey`: The PKP public key.
+  - `type`: The type of session.
+- **Returns:** The session signatures.
+
+##### `executeLitAction`
+```typescript
+async executeLitAction(params: ExecuteLitActionParams): Promise<any>
+```
+- Executes a Lit action.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkpPublicKey`, `litActionIpfsCid`, `litActionCode`, and `params`.
+- **Returns:** The result of the executed action.
+
+##### `createSolanaWK`
+```typescript
+async createSolanaWK(userPrivateKey: string): Promise<{ pkpInfo: PKP, wkInfo: WK }>
+```
+- Creates a Solana Wrapped Key (WK).
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+- **Returns:** An object containing the PKP and WK information.
+
+##### `getDecipheringDetails`
+```typescript
+async getDecipheringDetails(params: GetDecipheringDetailsParams): Promise<{ ciphertext: string, dataToEncryptHash: string }>
+```
+- Gets deciphering details.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkp`, and `wk`.
+- **Returns:** An object containing the ciphertext and data to encrypt hash.
+
+##### `getConditionalLitAction`
+```typescript
+async getConditionalLitAction(conditionalLogic: string): Promise<string>
+```
+- Gets a conditional Lit action.
+- **Parameters:**
+  - `conditionalLogic`: The conditional logic.
+- **Returns:** The conditional Lit action.
+
+##### `conditionalSigningOnSolana`
+```typescript
+async conditionalSigningOnSolana(params: ConditionalSigningOnSolanaParams): Promise<any>
+```
+- Performs conditional signing on Solana.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `litTransaction`, `broadcastTransaction`, `conditionalLogic`, `pkp`, `wk`, and `params`.
+- **Returns:** The result of the conditional signing.
+
+##### `executeCustomActionOnSolana`
+```typescript
+async executeCustomActionOnSolana(params: ExecuteCustomActionOnSolanaParams): Promise<any>
+```
+- Executes a custom action on Solana.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `litActionCode`, `pkp`, `wk`, and `params`.
+- **Returns:** The result of the executed action.
+
+##### `executeSolanaAgentKit`
+```typescript
+async executeSolanaAgentKit(params: ExecuteSolanaAgentKitParams): Promise<any>
+```
+- Executes the Solana Agent Kit.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `MESSAGE`, `RPC_URL`, `OPENAI_API_KEY`, `pkp`, and `wk`.
+- **Returns:** The result of the executed action.
+
+##### `sendSolanaWKTxnWithSol`
+```typescript
+async sendSolanaWKTxnWithSol(params: SendSolanaWKTxnWithSolParams): Promise<any>
+```
+- Sends a Solana WK transaction with SOL.
+- **Parameters:**
+  - `params`: An object containing `amount`, `toAddress`, `network`, `broadcastTransaction`, `userPrivateKey`, `wk`, and `pkp`.
+- **Returns:** The signed transaction.
+
+##### `sendSolanaWKTxnWithCustomToken`
+```typescript
+async sendSolanaWKTxnWithCustomToken(params: SendSolanaWKTxnWithCustomTokenParams): Promise<any>
+```
+- Sends a Solana WK transaction with a custom token.
+- **Parameters:**
+  - `params`: An object containing `tokenMintAddress`, `amount`, `toAddress`, `network`, `broadcastTransaction`, `userPrivateKey`, `wk`, and `pkp`.
+- **Returns:** The signed transaction.
+
+##### `createSerializedLitTxn`
+```typescript
+async createSerializedLitTxn(params: CreateSerializedLitTxnParams): Promise<any>
+```
+- Creates a serialized Lit transaction.
+- **Parameters:**
+  - `params`: An object containing `toAddress`, `amount`, `network`, `flag`, `tokenMintAddress`, and `wk`.
+- **Returns:** The serialized transaction.
+
+### `LitTester` Class
+
+#### Constructor
+```typescript
+constructor(userPrivateKey: string, litNetwork: LIT_NETWORKS_KEYS)
+```
+- Initializes a new instance of the `LitTester` class.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `litNetwork`: The Lit network key.
+
+#### Methods
+
+##### `init`
+```typescript
+static async init(userPrivateKey: string, litNetwork: LIT_NETWORKS_KEYS): Promise<LitTester>
+```
+- Initializes a new instance of the `LitTester` class and initializes the PKP.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `litNetwork`: The Lit network key.
+- **Returns:** The initialized `LitTester` instance.
+
+##### `initializePKP`
+```typescript
+async initializePKP(): Promise<void>
+```
+- Initializes the PKP.
+- **Returns:** Nothing.
+
+##### `testLitAction`
+```typescript
+async testLitAction(params: TestLitActionParams): Promise<any>
+```
+- Tests a Lit action.
+- **Parameters:**
+  - `params`: An object containing `litActionCode` and `params`.
+- **Returns:** The result of the tested action.
+
+### Enums
+
+#### `FlagForLitTxn`
+```typescript
+enum FlagForLitTxn {
+    SOL,
+    CUSTOM,
+}
+```
+- Enum for flags used in Lit transactions.
+- **Values:**
+  - `SOL`: Indicates a SOL transaction.
+  - `CUSTOM`: Indicates a custom token transaction.
+
+### Types
+
+#### `PKP`
+```typescript
+interface PKP {
+    tokenId: string;
+    publicKey: string;
+    ethAddress: string;
+}
+```
+- Interface for a PKP (Programmable Key Pair).
+
+#### `WK`
+```typescript
+interface WK {
+    pkpAddress: string;
+    id: string;
+    generatedPublicKey: string;
+}
+```
+- Interface for a Wrapped Key (WK).
+
+#### `AddPermittedActionParams`
+```typescript
+interface AddPermittedActionParams {
+    userPrivateKey: string;
+    pkpTokenId: string;
+    litActionCode: string;
+    pinataAPIKey: string;
+}
+```
+- Interface for parameters used in adding a permitted action.
+
+#### `UploadViaPinataParams`
+```typescript
+interface UploadViaPinataParams {
+    pinataAPIKey: string;
+    litActionCode: string;
+}
+```
+- Interface for parameters used in uploading via Pinata.
+
+#### `GetDecipheringDetailsParams`
+```typescript
+interface GetDecipheringDetailsParams {
+    userPrivateKey: string;
+    pkp: PKP;
+    wk: WK;
+}
+```
+- Interface for parameters used in getting deciphering details.
+
+#### `CreatePKPWithLitActionParams`
+```typescript
+interface CreatePKPWithLitActionParams {
+    userPrivateKey: string;
+    litActionCode: string;
+    pinataAPIKey: string;
+}
+```
+- Interface for parameters used in creating a PKP with a Lit action.
+
+#### `ExecuteLitActionParams`
+```typescript
+interface ExecuteLitActionParams {
+    userPrivateKey: string;
+    pkpPublicKey: string;
+    litActionIpfsCid?: string;
+    litActionCode?: string;
+    params?: Object;
+}
+```
+- Interface for parameters used in executing a Lit action.
+
+#### `ConditionalSigningOnSolanaParams`
+```typescript
+interface ConditionalSigningOnSolanaParams {
+    userPrivateKey: string;
+    litTransaction: any;
+    broadcastTransaction: boolean;
+    conditionalLogic: string;
+    pkp?: PKP;
+    wk?: WK;
+    params?: Object;
+}
+```
+- Interface for parameters used in conditional signing on Solana.
+
+#### `ExecuteCustomActionOnSolanaParams`
+```typescript
+interface ExecuteCustomActionOnSolanaParams {
+    userPrivateKey: string;
+    litActionCode: string;
+    pkp?: PKP;
+    wk?: WK;
+    params?: Object;
+}
+```
+- Interface for parameters used in executing a custom action on Solana.
+
+#### `ExecuteSolanaAgentKitParams`
+```typescript
+interface ExecuteSolanaAgentKitParams {
+    userPrivateKey: string;
+    MESSAGE: string;
+    RPC_URL: string;
+    OPENAI_API_KEY: string;
+    pkp?: PKP;
+    wk?: WK;
+}
+```
+- Interface for parameters used in executing the Solana Agent Kit.
+
+#### `CreateSerializedLitTxnParams`
+```typescript
+interface CreateSerializedLitTxnParams {
+    toAddress: string;
+    amount: number;
+    network: Cluster;
+    flag: FlagForLitTxn;
+    tokenMintAddress?: string;
+    wk?: WK;
+}
+```
+- Interface for parameters used in creating a serialized Lit transaction.
+
+#### `SendSolanaWKTxnWithSolParams`
+```typescript
+interface SendSolanaWKTxnWithSolParams {
+    amount: number;
+    toAddress: string;
+    network: Cluster;
+    broadcastTransaction: boolean;
+    userPrivateKey: string;
+    wk?: WK;
+    pkp?: PKP;
+}
+```
+- Interface for parameters used in sending a Solana WK transaction with SOL.
+
+#### `SendSolanaWKTxnWithCustomTokenParams`
+```typescript
+interface SendSolanaWKTxnWithCustomTokenParams {
+    tokenMintAddress: string;
+    amount: number;
+    toAddress: string;
+    network: Cluster;
+    broadcastTransaction: boolean;
+    userPrivateKey: string;
+    wk?: WK;
+    pkp?: PKP;
+}
+```
+- Interface for parameters used in sending a Solana WK transaction with a custom token.
+
+#### `TestLitActionParams`
+```typescript
+interface TestLitActionParams {
+    litActionCode: string;
+    params: Object;
+}
+```
+- Interface for parameters used in testing a Lit action.
+
+
 ## Examples
 
 ### 1) Creating a Key on Solana and Sending Transaction
