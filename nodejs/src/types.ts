@@ -25,6 +25,12 @@ export interface UploadViaPinataParams {
     litActionCode: string;
 }
 
+export interface GetDecipheringDetailsParams {
+    userPrivateKey: string;
+    pkp: PKP;
+    wk: WK;
+}
+
 export interface CreatePKPWithLitActionParams {
     userPrivateKey: string;
     litActionCode: string;
@@ -51,8 +57,6 @@ export interface ConditionalSigningOnSolanaParams {
 
 export interface ExecuteCustomActionOnSolanaParams {
     userPrivateKey: string;
-    litTransaction: any;
-    broadcastTransaction: boolean;
     litActionCode: string;
     pkp?: PKP;
     wk?: WK;

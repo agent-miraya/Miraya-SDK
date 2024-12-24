@@ -39,9 +39,10 @@ import {
     SendSolanaWKTxnWithCustomTokenParams,
     TestLitActionParams,
     FlagForLitTxn,
+    GetDecipheringDetailsParams,
 } from "./types.js";
 // @ts-ignore
-import { litAction } from "./actions/litAction.js";
+import { litAction } from "./actions/solana-conditional.js";
 
 class LitWrapper {
     private litNodeClient: LitNodeClient;
@@ -107,16 +108,41 @@ class LitWrapper {
         });
         await litContracts.connect();
 
-        await litContracts.addPermittedAction({
+        const response = await litContracts.addPermittedAction({
             pkpTokenId: pkpTokenId,
             ipfsId: ipfsCID,
             authMethodScopes: [AUTH_METHOD_SCOPE.SignAnything],
         });
 
-        return ipfsCID;
+        return { ipfsCID, response };
     }
 
-    async uploadViaPinata({ pinataAPIKey, litActionCode }: UploadViaPinataParams) {
+    async addAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: string) {
+        const ethersWallet = new ethers.Wallet(
+            userPrivateKey,
+            new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
+        );
+
+        const litContracts = new LitContracts({
+            signer: ethersWallet,
+            network: this.litNetwork,
+            debug: false,
+        });
+        await litContracts.connect();
+
+        const response = await litContracts.addPermittedAuthMethod({
+            pkpTokenId: pkpTokenId,
+            authMethodType: 1,
+            authMethodId: ethAddress,
+            authMethodScopes: [AUTH_METHOD_SCOPE.SignAnything],
+        });
+        return response;
+    }
+
+    async uploadViaPinata({
+        pinataAPIKey,
+        litActionCode,
+    }: UploadViaPinataParams) {
         const formData = new FormData();
 
         const file = new File([litActionCode], "Action.txt", {
@@ -147,18 +173,13 @@ class LitWrapper {
         return response.IpfsHash;
     }
 
-    async checkPermits(pkpTokenId: string, litActionCID: string) {
-        console.log("checking perms..");
-
+    async checkPermits(pkpTokenId: string) {
         const litContracts = new LitContracts({
             network: this.litNetwork,
             debug: false,
         });
         await litContracts.connect();
 
-        let CIDinHex = `0x${Buffer.from(bs58.decode(litActionCID)).toString(
-            "hex"
-        )}`;
         let permittedActions =
             await litContracts.pkpPermissionsContract.read.getPermittedActions(
                 pkpTokenId
@@ -173,15 +194,9 @@ class LitWrapper {
             );
 
         const results = {
-            litAction: {
-                cid: litActionCID,
-                hex: CIDinHex,
-            },
-            permissions: {
-                actions: permittedActions,
-                authMethods: permittedAuthMethods,
-                addresses: permittedAddresses,
-            },
+            actions: permittedActions,
+            authMethods: permittedAuthMethods,
+            addresses: permittedAddresses,
         };
         console.log(results);
         return results;
@@ -293,7 +308,6 @@ class LitWrapper {
 
     async createSolanaWK(userPrivateKey: string) {
         try {
-            
             if (!this.pkp) {
                 await this.createPKP(userPrivateKey);
             }
@@ -301,7 +315,7 @@ class LitWrapper {
                 throw new Error("PKP not initialized");
             }
             console.log("PKP: ", this.pkp);
-            
+
             if (!this.litNodeClient.ready) {
                 await this.litNodeClient.connect();
             }
@@ -335,6 +349,52 @@ class LitWrapper {
         }
     }
 
+    async getDecipheringDetails({
+        userPrivateKey,
+        pkp,
+        wk,
+    }: GetDecipheringDetailsParams) {
+        if (pkp) {
+            this.pkp = pkp;
+        }
+        if (wk) {
+            this.wk = wk;
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
+        }
+        try {
+            this.litNodeClient.connect();
+            const {
+                ciphertext: solanaCipherText,
+                dataToEncryptHash: solanaDataToEncryptHash,
+            } = await getEncryptedKey({
+                pkpSessionSigs: await this.getSessionSigs(
+                    userPrivateKey,
+                    this.pkp.publicKey,
+                    "pkp"
+                ),
+                litNodeClient: this.litNodeClient,
+                id: wk.id,
+            });
+            return {
+                ciphertext: solanaCipherText,
+                dataToEncryptHash: solanaDataToEncryptHash,
+            };
+        } catch (error) {
+            throw new Error("Failed to get deciphering details");
+        } finally {
+            this.litNodeClient?.disconnect();
+        }
+    }
+
+    async getConditionalLitAction(conditionalLogic: string) {
+        return litAction(conditionalLogic);
+    }
+
     async conditionalSigningOnSolana({
         userPrivateKey,
         litTransaction,
@@ -342,7 +402,7 @@ class LitWrapper {
         conditionalLogic,
         pkp,
         wk,
-        params
+        params,
     }: ConditionalSigningOnSolanaParams) {
         if (pkp) {
             this.pkp = pkp;
@@ -419,12 +479,10 @@ class LitWrapper {
 
     async executeCustomActionOnSolana({
         userPrivateKey,
-        litTransaction,
-        broadcastTransaction,
         litActionCode,
         pkp,
         wk,
-        params
+        params,
     }: ExecuteCustomActionOnSolanaParams) {
         if (pkp) {
             this.pkp = pkp;
@@ -482,8 +540,6 @@ class LitWrapper {
                     pkpAddress: this.pkp.ethAddress,
                     ciphertext: solanaCipherText,
                     dataToEncryptHash: solanaDataToEncryptHash,
-                    unsignedTransaction: litTransaction,
-                    broadcast: broadcastTransaction,
                     accessControlConditions: [wkAccessControlConditions],
                     ...params,
                 },

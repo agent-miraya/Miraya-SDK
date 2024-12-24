@@ -1,6 +1,6 @@
 {
   "name": "lit-wrapper-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Ansh Saxena",
   "license": "MIT",
   "description": "A wrapper SDK for Lit Protocol",

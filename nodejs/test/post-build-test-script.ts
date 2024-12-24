@@ -155,6 +155,43 @@ async function createLitActionAndSignSolanaTxn() {
     console.log(checkResult);
 }
 
+async function getDecipheringDetails() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const decipheringDetails = await litWrapper.getDecipheringDetails({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+    });
+    console.log(decipheringDetails);
+}
+
+async function executeCustomLitAction() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const litActionCode = `
+    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
+    const resp = await fetch(url).then((response) => response.json());
+    const temp = resp.properties.periods[0].temperature;
+
+    console.log(temp);
+
+    // only sign if the temperature is below 60
+    if (temp < 60) {
+        createSignatureWithAction();
+    }`;
+
+    const result = await litWrapper.executeCustomActionOnSolana({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        litActionCode,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+        params: {
+            test_api_key: "1234",
+        },
+        broadcastTransaction: false,
+    });
+    console.log(result);
+}
+
 // actionTester();
 // generateSolanaWallet();
 // sendSolTxn();
