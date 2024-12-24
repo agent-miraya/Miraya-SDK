@@ -21,25 +21,16 @@ constructor(litNetwork: LIT_NETWORKS_KEYS)
 - **Parameters:**
   - `litNetwork`: The Lit network key.
 
-#### Methods
+#### Auth Methods
 
-##### `createPKP`
+##### `checkPermits`
 ```typescript
-async createPKP(userPrivateKey: string): Promise<PKP | undefined>
+async checkPermits(pkpTokenId: string): Promise<{ actions: any[], authMethods: any[], addresses: any[] }>
 ```
-- Creates a PKP (Programmable Key Pair).
+- Checks the permits of a PKP.
 - **Parameters:**
-  - `userPrivateKey`: The user's private key.
-- **Returns:** The created PKP.
-
-##### `addPermittedAction`
-```typescript
-async addPermittedAction(params: AddPermittedActionParams): Promise<{ ipfsCID: string, response: any }>
-```
-- Adds a permitted action to a PKP.
-- **Parameters:**
-  - `params`: An object containing `userPrivateKey`, `pkpTokenId`, `litActionCode`, and `pinataAPIKey`.
-- **Returns:** An object containing the IPFS CID and the response.
+  - `pkpTokenId`: The PKP token ID.
+- **Returns:** An object containing the permitted actions, auth methods, and addresses.
 
 ##### `addAuthAddress`
 ```typescript
@@ -52,62 +43,16 @@ async addAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: str
   - `ethAddress`: The Ethereum address to authorize.
 - **Returns:** The response from the Lit network.
 
-##### `uploadViaPinata`
+##### `addPermittedAction`
 ```typescript
-async uploadViaPinata(params: UploadViaPinataParams): Promise<string>
+async addPermittedAction(params: AddPermittedActionParams): Promise<{ ipfsCID: string, response: any }>
 ```
-- Uploads a file to Pinata.
+- Adds a permitted action to a PKP.
 - **Parameters:**
-  - `params`: An object containing `pinataAPIKey` and `litActionCode`.
-- **Returns:** The IPFS hash of the uploaded file.
+  - `params`: An object containing `userPrivateKey`, `pkpTokenId`, `litActionCode`, and `pinataAPIKey`.
+- **Returns:** An object containing the IPFS CID and the response.
 
-##### `checkPermits`
-```typescript
-async checkPermits(pkpTokenId: string): Promise<{ actions: any[], authMethods: any[], addresses: any[] }>
-```
-- Checks the permits of a PKP.
-- **Parameters:**
-  - `pkpTokenId`: The PKP token ID.
-- **Returns:** An object containing the permitted actions, auth methods, and addresses.
-
-##### `createPKPWithLitAction`
-```typescript
-async createPKPWithLitAction(params: CreatePKPWithLitActionParams): Promise<{ pkp: PKP, ipfsCID: string }>
-```
-- Creates a PKP and adds a permitted action.
-- **Parameters:**
-  - `params`: An object containing `userPrivateKey`, `litActionCode`, and `pinataAPIKey`.
-- **Returns:** An object containing the created PKP and the IPFS CID.
-
-##### `createPKPSessionSigs`
-```typescript
-async createPKPSessionSigs(userPrivateKey: string, pkpPublicKey: string): Promise<any>
-```
-- Creates session signatures for a PKP.
-- **Parameters:**
-  - `userPrivateKey`: The user's private key.
-  - `pkpPublicKey`: The PKP public key.
-- **Returns:** The session signatures.
-
-##### `getSessionSigs`
-```typescript
-async getSessionSigs(userPrivateKey: string, pkpPublicKey: string, type: string): Promise<any>
-```
-- Gets session signatures.
-- **Parameters:**
-  - `userPrivateKey`: The user's private key.
-  - `pkpPublicKey`: The PKP public key.
-  - `type`: The type of session.
-- **Returns:** The session signatures.
-
-##### `executeLitAction`
-```typescript
-async executeLitAction(params: ExecuteLitActionParams): Promise<any>
-```
-- Executes a Lit action.
-- **Parameters:**
-  - `params`: An object containing `userPrivateKey`, `pkpPublicKey`, `litActionIpfsCid`, `litActionCode`, and `params`.
-- **Returns:** The result of the executed action.
+#### Solana Methods
 
 ##### `createSolanaWK`
 ```typescript
@@ -117,15 +62,6 @@ async createSolanaWK(userPrivateKey: string): Promise<{ pkpInfo: PKP, wkInfo: WK
 - **Parameters:**
   - `userPrivateKey`: The user's private key.
 - **Returns:** An object containing the PKP and WK information.
-
-##### `getDecipheringDetails`
-```typescript
-async getDecipheringDetails(params: GetDecipheringDetailsParams): Promise<{ ciphertext: string, dataToEncryptHash: string }>
-```
-- Gets deciphering details.
-- **Parameters:**
-  - `params`: An object containing `userPrivateKey`, `pkp`, and `wk`.
-- **Returns:** An object containing the ciphertext and data to encrypt hash.
 
 ##### `getConditionalLitAction`
 ```typescript
@@ -189,6 +125,74 @@ async createSerializedLitTxn(params: CreateSerializedLitTxnParams): Promise<any>
 - **Parameters:**
   - `params`: An object containing `toAddress`, `amount`, `network`, `flag`, `tokenMintAddress`, and `wk`.
 - **Returns:** The serialized transaction.
+
+#### Util Methods
+
+##### `createPKP`
+```typescript
+async createPKP(userPrivateKey: string): Promise<PKP | undefined>
+```
+- Creates a PKP (Programmable Key Pair).
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+- **Returns:** The created PKP.
+
+##### `createPKPWithLitAction`
+```typescript
+async createPKPWithLitAction(params: CreatePKPWithLitActionParams): Promise<{ pkp: PKP, ipfsCID: string }>
+```
+- Creates a PKP and adds a permitted action.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `litActionCode`, and `pinataAPIKey`.
+- **Returns:** An object containing the created PKP and the IPFS CID.
+
+##### `createPKPSessionSigs`
+```typescript
+async createPKPSessionSigs(userPrivateKey: string, pkpPublicKey: string): Promise<any>
+```
+- Creates session signatures for a PKP.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpPublicKey`: The PKP public key.
+- **Returns:** The session signatures.
+
+##### `getSessionSigs`
+```typescript
+async getSessionSigs(userPrivateKey: string, pkpPublicKey: string, type: string): Promise<any>
+```
+- Gets session signatures.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpPublicKey`: The PKP public key.
+  - `type`: The type of session.
+- **Returns:** The session signatures.
+
+##### `executeLitAction`
+```typescript
+async executeLitAction(params: ExecuteLitActionParams): Promise<any>
+```
+- Executes a Lit action.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkpPublicKey`, `litActionIpfsCid`, `litActionCode`, and `params`.
+- **Returns:** The result of the executed action.
+
+##### `getDecipheringDetails`
+```typescript
+async getDecipheringDetails(params: GetDecipheringDetailsParams): Promise<{ ciphertext: string, dataToEncryptHash: string }>
+```
+- Gets deciphering details.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkp`, and `wk`.
+- **Returns:** An object containing the ciphertext and data to encrypt the hash.
+
+##### `uploadViaPinata`
+```typescript
+async uploadViaPinata(params: UploadViaPinataParams): Promise<string>
+```
+- Uploads a file to Pinata.
+- **Parameters:**
+  - `params`: An object containing `pinataAPIKey` and `litActionCode`.
+- **Returns:** The IPFS hash of the uploaded file.
 
 ### `LitTester` Class
 
@@ -293,7 +297,7 @@ interface GetDecipheringDetailsParams {
     wk: WK;
 }
 ```
-- Interface for parameters used in getting deciphering details.
+- Interface for parameters used in deciphering details.
 
 #### `CreatePKPWithLitActionParams`
 ```typescript
