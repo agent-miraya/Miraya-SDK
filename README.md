@@ -3,6 +3,29 @@
 Using Lit Network has never been easier before
 </br> An Ethereum private key is used to send requests to the Lit Network. Fund your wallet with a [faucet](https://chronicle-yellowstone-faucet.getlit.dev/) on Lit's custom rollup chain.
 
+## Quickview
+
+```bash
+npm install lit-wrapper-sdk
+```
+
+Generates a Solana key and sends a prompt to the Solana-agent-kit (This kit runs inside Lit's TEE)
+
+```js
+async function executeSolanaAgentKit() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const agentKitResponse = await litWrapper.executeSolanaAgentKit({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        MESSAGE: "What is my sol balance?",
+        RPC_URL: "https://api.devnet.solana.com",
+        OPENAI_API_KEY: process.env.OPEN_AI_API_KEY!,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+    });
+    console.log(agentKitResponse);
+}
+```
+
 Checks against a conditional logic and only creates signatures for a specified transaction when the condition is satisfies
 
 ```js
@@ -40,12 +63,6 @@ async function createLitActionAndSignSolanaTxn() {
     });
     console.log(checkResult);
 }
-```
-
-## Installation
-
-```bash
-npm install lit-wrapper-sdk
 ```
 
 ## API/Method References
