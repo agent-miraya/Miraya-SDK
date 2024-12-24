@@ -3,6 +3,45 @@
 Using Lit Network has never been easier before
 </br> An Ethereum private key is used to send requests to the Lit Network. Fund your wallet with a [faucet](https://chronicle-yellowstone-faucet.getlit.dev/) on Lit's custom rollup chain.
 
+Checks against a conditional logic and only creates signatures for a specified transaction when the condition is satisfies
+
+```js
+async function createLitActionAndSignSolanaTxn() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
+
+    const conditionLogic = `
+    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
+    const resp = await fetch(url).then((response) => response.json());
+    const temp = resp.properties.periods[0].temperature;
+
+    console.log(temp);
+
+    // only sign if the temperature is below 60
+    if (temp < 60) {
+        createSignatureWithAction();
+    }`;
+
+    const txn = await litWrapper.createSerializedLitTxn({
+        wk: response?.wkInfo,
+        toAddress: "BTBPKRJQv7mn2kxBBJUpzh3wKN567ZLdXDWcxXFQ4KaV",
+        amount: 0.004 * Math.pow(10, 9),
+        network: "mainnet-beta",
+        flag: FlagForLitTxn.SOL,
+    });
+
+    const checkResult = await litWrapper.conditionalSigningOnSolana({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        litTransaction: txn,
+        conditionLogic,
+        broadcastTransaction: true,
+        wk: response?.wkInfo,
+        pkp: response?.pkpInfo,
+    });
+    console.log(checkResult);
+}
+```
+
 ## Installation
 
 ```bash
@@ -457,9 +496,9 @@ async function sendBONKTxn() {
 }
 ```
 
-### 2) Creating Conditioned Signing on Solana
+### 2) Creating Conditional Signing on Solana
 
-Checks against a conditional logic and only creates signatures for a specified transaction when condition is satisfies
+Checks against a conditional logic and only creates signatures for a specified transaction when the condition is satisfies
 
 ```js
 async function createLitActionAndSignSolanaTxn() {
