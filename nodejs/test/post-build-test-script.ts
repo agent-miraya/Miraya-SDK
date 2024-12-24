@@ -1,4 +1,4 @@
-import { LitWrapper, LitTester } from "../dist/index.js";
+import { LitWrapper, LitTester } from "../src/index.ts";
 import { FlagForLitTxn } from "../dist/types.js";
 import * as ethers from "ethers";
 import "dotenv/config";
@@ -31,8 +31,7 @@ async function actionTester() {
         throw new Error("ETHEREUM_PRIVATE_KEY is not set");
     }
 
-    const litActionCode =
-    `(async () => {
+    const litActionCode = `(async () => {
         try {
             const sigShare = await Lit.Actions.ethPersonalSignMessageEcdsa({
                 message: dataToSign,
@@ -59,7 +58,10 @@ async function actionTester() {
         },
     ];
 
-    const results = await tester.testLitAction({litActionCode, params: params[0]});
+    const results = await tester.testLitAction({
+        litActionCode,
+        params: params[0],
+    });
     console.log("Test Results: ", results);
 }
 
@@ -120,6 +122,16 @@ async function generateSolanaWalletAndSendSolTxn() {
     console.log("Transaction Hash: ", signedTx);
 }
 
+async function getDecipheringDetails() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const decipheringDetails = await litWrapper.getDecipheringDetails({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+    });
+    console.log(decipheringDetails);
+}
+
 async function createLitActionAndSignSolanaTxn() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     console.log("Solana Public Key", response?.wkInfo.generatedPublicKey);
@@ -155,29 +167,37 @@ async function createLitActionAndSignSolanaTxn() {
     console.log(checkResult);
 }
 
-async function getDecipheringDetails() {
-    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
-    const decipheringDetails = await litWrapper.getDecipheringDetails({
-        userPrivateKey: ETHEREUM_PRIVATE_KEY,
-        pkp: response?.pkpInfo!,
-        wk: response?.wkInfo!,
-    });
-    console.log(decipheringDetails);
-}
-
 async function executeCustomLitAction() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     const litActionCode = `
-    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
-    const resp = await fetch(url).then((response) => response.json());
-    const temp = resp.properties.periods[0].temperature;
-
-    console.log(temp);
-
-    // only sign if the temperature is below 60
-    if (temp < 60) {
-        createSignatureWithAction();
-    }`;
+    const go = async () => {
+        try {
+            const callAI = await LitActions.runOnce({ 
+                waitForResponse: true, name: "Lit Actions Test" },
+                async () => {
+                    const messages = [
+                        { role: "system", content: "You are an AI assistant. Only answer with a single sentence." },
+                    ];
+                    const response = await fetch(
+                    "https://api.openai.com/v1/chat/completions",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: \`Bearer \${apiKey}\`,
+                        },
+                        body: JSON.stringify({ model: "gpt -4o-mini", messages }),
+                    });
+                    const json = await response.json();
+                    console.log(json);
+                    return json.choices[0].message;
+                });
+            console.log(callAI);
+            Lit.Actions.setResponse({ response: callAI });
+        } catch (error) {
+            Lit.Actions.setResponse({ response: error.message });
+        }
+    }; go();`;
 
     const result = await litWrapper.executeCustomActionOnSolana({
         userPrivateKey: ETHEREUM_PRIVATE_KEY,
@@ -185,16 +205,77 @@ async function executeCustomLitAction() {
         pkp: response?.pkpInfo!,
         wk: response?.wkInfo!,
         params: {
-            test_api_key: "1234",
+            apiKey: process.env.OPEN_AI_API_KEY,
         },
-        broadcastTransaction: false,
     });
     console.log(result);
+}
+
+async function checkAuthMethods() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const permits = await litWrapper.checkPermits(response?.pkpInfo?.tokenId!);
+    console.log(permits);
+}
+
+// This will make a Lit Action as an auth method and can be invoked by anyone to create signatures only when conditions are met
+async function addLitActionAsAuthMethod() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+
+    const litActionCode = `
+    const url = "https://api.weather.gov/gridpoints/TOP/31,80/forecast";
+    const resp = await fetch(url).then((response) => response.json());
+    const temp = resp.properties.periods[0].temperature;
+
+    // only sign if the temperature is below 60
+    if (temp < 60) {
+        createSignatureWithAction();
+    }`;
+
+    const conditionalLogic = await litWrapper.getConditionalLitAction(
+        litActionCode
+    );
+
+    const permits = await litWrapper.addPermittedAction({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        pkpTokenId: response?.pkpInfo?.tokenId!,
+        litActionCode: conditionalLogic,
+        pinataAPIKey: process.env.PINATA_API_KEY!,
+    });
+    console.log(permits);
+}
+
+async function addAuthAddress() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const authAddressResponse = await litWrapper.addAuthAddress(
+        ETHEREUM_PRIVATE_KEY,
+        response?.pkpInfo?.tokenId!,
+        "0xE1B12f284654c080145Fed0f991D1C3B8d493A06"
+    );
+    console.log(authAddressResponse);
+}
+
+async function executeSolanaAgentKit() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const agentKitResponse = await litWrapper.executeSolanaAgentKit({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        MESSAGE: "What is my sol balance?",
+        RPC_URL: "https://api.devnet.solana.com",
+        OPENAI_API_KEY: process.env.OPEN_AI_API_KEY!,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+    });
+    console.log(agentKitResponse);
 }
 
 // actionTester();
 // generateSolanaWallet();
 // sendSolTxn();
 // sendBONKTxn();
+// getDecipheringDetails
 // generateSolanaWalletAndSendSolTxn();
-createLitActionAndSignSolanaTxn();
+// createLitActionAndSignSolanaTxn();
+// executeCustomLitAction();
+// checkAuthMethods()
+// addLitActionAsAuthMethod()
+// addAuthAddress()
+executeSolanaAgentKit()

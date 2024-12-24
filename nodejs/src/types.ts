@@ -63,6 +63,15 @@ export interface ExecuteCustomActionOnSolanaParams {
     params?: Object;
 }
 
+export interface ExecuteSolanaAgentKitParams {
+    userPrivateKey: string;
+    MESSAGE: string;
+    RPC_URL: string;
+    OPENAI_API_KEY: string;
+    pkp?: PKP;
+    wk?: WK;
+}
+
 export interface CreateSerializedLitTxnParams {
     toAddress: string;
     amount: number;

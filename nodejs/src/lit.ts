@@ -40,9 +40,11 @@ import {
     TestLitActionParams,
     FlagForLitTxn,
     GetDecipheringDetailsParams,
+    ExecuteSolanaAgentKitParams,
 } from "./types.js";
 // @ts-ignore
 import { litAction } from "./actions/solana-conditional.js";
+import loadSolanaKit from "./fileHandler.js";
 
 class LitWrapper {
     private litNodeClient: LitNodeClient;
@@ -117,7 +119,11 @@ class LitWrapper {
         return { ipfsCID, response };
     }
 
-    async addAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: string) {
+    async addAuthAddress(
+        userPrivateKey: string,
+        pkpTokenId: string,
+        ethAddress: string
+    ) {
         const ethersWallet = new ethers.Wallet(
             userPrivateKey,
             new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
@@ -551,6 +557,31 @@ class LitWrapper {
         } finally {
             this.litNodeClient?.disconnect();
         }
+    }
+
+    async executeSolanaAgentKit({
+        userPrivateKey,
+        MESSAGE,
+        RPC_URL,
+        OPENAI_API_KEY,
+        pkp,
+        wk,
+    }: ExecuteSolanaAgentKitParams) {
+        const AgentKitAction = await loadSolanaKit();
+
+        const params = {
+            MESSAGE,
+            RPC_URL,
+            OPENAI_API_KEY,
+        };
+
+        return this.executeCustomActionOnSolana({
+            userPrivateKey,
+            litActionCode: AgentKitAction,
+            pkp,
+            wk,
+            params,
+        });
     }
 
     async sendSolanaWKTxnWithSol({

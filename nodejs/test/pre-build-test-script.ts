@@ -254,6 +254,19 @@ async function addAuthAddress() {
     console.log(authAddressResponse);
 }
 
+async function executeSolanaAgentKit() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    const agentKitResponse = await litWrapper.executeSolanaAgentKit({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        MESSAGE: "What is my sol balance?",
+        RPC_URL: "https://api.devnet.solana.com",
+        OPENAI_API_KEY: process.env.OPEN_AI_API_KEY!,
+        pkp: response?.pkpInfo!,
+        wk: response?.wkInfo!,
+    });
+    console.log(agentKitResponse);
+}
+
 // actionTester();
 // generateSolanaWallet();
 // sendSolTxn();
@@ -262,3 +275,7 @@ async function addAuthAddress() {
 // generateSolanaWalletAndSendSolTxn();
 // createLitActionAndSignSolanaTxn();
 // executeCustomLitAction();
+// checkAuthMethods()
+// addLitActionAsAuthMethod()
+// addAuthAddress()
+executeSolanaAgentKit()
