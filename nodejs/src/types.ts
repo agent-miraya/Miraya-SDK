@@ -20,6 +20,12 @@ export interface AddPermittedActionParams {
     pinataAPIKey: string;
 }
 
+export interface RemovePermittedActionParams {
+    userPrivateKey: string;
+    pkpTokenId: string;
+    ipfsCID: string;
+}
+
 export interface UploadViaPinataParams {
     pinataAPIKey: string;
     litActionCode: string;

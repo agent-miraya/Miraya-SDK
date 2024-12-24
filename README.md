@@ -99,6 +99,17 @@ async addAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: str
   - `ethAddress`: The Ethereum address to authorize.
 - **Returns:** The response from the Lit network.
 
+##### `removeAuthAddress`
+```typescript
+async removeAuthAddress(userPrivateKey: string, pkpTokenId: string, ethAddress: string): Promise<any>
+```
+- Adds an authorized address to a PKP.
+- **Parameters:**
+  - `userPrivateKey`: The user's private key.
+  - `pkpTokenId`: The PKP token ID.
+  - `ethAddress`: The Ethereum address to authorize.
+- **Returns:** The response from the Lit network.
+
 ##### `addPermittedAction`
 ```typescript
 async addPermittedAction(params: AddPermittedActionParams): Promise<{ ipfsCID: string, response: any }>
@@ -107,6 +118,16 @@ async addPermittedAction(params: AddPermittedActionParams): Promise<{ ipfsCID: s
 - **Parameters:**
   - `params`: An object containing `userPrivateKey`, `pkpTokenId`, `litActionCode`, and `pinataAPIKey`.
 - **Returns:** An object containing the IPFS CID and the response.
+
+##### `removePermittedAction`
+```typescript
+async removePermittedAction(params: RemovePermittedActionParams): Promise<{ ipfsCID: string, response: any }>
+```
+- Adds a permitted action to a PKP.
+- **Parameters:**
+  - `params`: An object containing `userPrivateKey`, `pkpTokenId`, `litActionCode`, and `pinataAPIKey`.
+- **Returns:** An object containing the IPFS CID and the response.
+
 
 #### Solana Methods
 

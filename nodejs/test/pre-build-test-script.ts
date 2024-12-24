@@ -284,15 +284,17 @@ async function uploadToIPFS() {
 
 async function removePermittedAction() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
-    await litWrapper.removePermittedAction(
-        response?.pkpInfo?.tokenId!,
-        "QmQ567ZLdXDWcxXFQ4KaV"
-    );
+    await litWrapper.removePermittedAction({
+        userPrivateKey: ETHEREUM_PRIVATE_KEY,
+        pkpTokenId: response?.pkpInfo?.tokenId!,
+        ipfsCID: "QmQ567ZLdXDWcxXFQ4KaV",
+    });
 }
 
 async function removeAuthAddress() {
     const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
     await litWrapper.removeAuthAddress(
+        ETHEREUM_PRIVATE_KEY,
         response?.pkpInfo?.tokenId!,
         "0xE1B12f284654c080145Fed0f991D1C3B8d493A06"
     );

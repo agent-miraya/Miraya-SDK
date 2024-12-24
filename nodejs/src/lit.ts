@@ -41,6 +41,7 @@ import {
     FlagForLitTxn,
     GetDecipheringDetailsParams,
     ExecuteSolanaAgentKitParams,
+    RemovePermittedActionParams,
 } from "./types.js";
 // @ts-ignore
 import { litAction } from "./actions/solana-conditional.js";
@@ -89,6 +90,56 @@ class LitWrapper {
         }
     }
 
+    async addAuthAddress(
+        userPrivateKey: string,
+        pkpTokenId: string,
+        ethAddress: string
+    ) {
+        const ethersWallet = new ethers.Wallet(
+            userPrivateKey,
+            new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
+        );
+
+        const litContracts = new LitContracts({
+            signer: ethersWallet,
+            network: this.litNetwork,
+            debug: false,
+        });
+        await litContracts.connect();
+
+        const response = await litContracts.addPermittedAuthMethod({
+            pkpTokenId: pkpTokenId,
+            authMethodType: 1,
+            authMethodId: ethAddress,
+            authMethodScopes: [AUTH_METHOD_SCOPE.SignAnything],
+        });
+        return response;
+    }
+
+    async removeAuthAddress(
+        userPrivateKey: string,
+        pkpTokenId: string,
+        ethAddress: string
+    ) {
+        const ethersWallet = new ethers.Wallet(
+            userPrivateKey,
+            new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
+        );
+
+        const litContracts = new LitContracts({
+            signer: ethersWallet,
+            network: this.litNetwork,
+            debug: false,
+        });
+        await litContracts.connect();
+        const response =
+            await litContracts.pkpPermissionsContract.write.removePermittedAddress(
+                pkpTokenId,
+                ethAddress
+            );
+        return response;
+    }
+
     async addPermittedAction({
         userPrivateKey,
         pkpTokenId,
@@ -121,50 +172,38 @@ class LitWrapper {
         return { ipfsCID, response };
     }
 
-    async addAuthAddress(
-        userPrivateKey: string,
-        pkpTokenId: string,
-        ethAddress: string
-    ) {
-        const ethersWallet = new ethers.Wallet(
-            userPrivateKey,
-            new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE)
-        );
+    async removePermittedAction({
+        userPrivateKey,
+        pkpTokenId,
+        ipfsCID,
+    }: RemovePermittedActionParams) {
+        try {
+            const ethersWallet = new ethers.Wallet(
+                userPrivateKey,
+                new ethers.providers.JsonRpcProvider(
+                    LIT_RPC.CHRONICLE_YELLOWSTONE
+                )
+            );
 
-        const litContracts = new LitContracts({
-            signer: ethersWallet,
-            network: this.litNetwork,
-            debug: false,
-        });
-        await litContracts.connect();
+            const litContracts = new LitContracts({
+                signer: ethersWallet,
+                network: this.litNetwork,
+                debug: false,
+            });
 
-        const response = await litContracts.addPermittedAuthMethod({
-            pkpTokenId: pkpTokenId,
-            authMethodType: 1,
-            authMethodId: ethAddress,
-            authMethodScopes: [AUTH_METHOD_SCOPE.SignAnything],
-        });
-        return response;
-    }
-
-    async removePermittedAction(pkpTokenId: string, ipfsCID: string) {
-        const litContracts = new LitContracts({
-            network: this.litNetwork,
-            debug: false,
-        });
-
-        const bytesIpfsCID = `0x${Buffer.from(bs58.decode(ipfsCID)).toString("hex")}`
-        await litContracts.connect();
-        await litContracts.pkpPermissionsContract.write.removePermittedAction(pkpTokenId, bytesIpfsCID);
-    }
-
-    async removeAuthAddress(pkpTokenId: string, ethAddress: string) {
-        const litContracts = new LitContracts({
-            network: this.litNetwork,
-            debug: false,
-        });
-        await litContracts.connect();
-        await litContracts.pkpPermissionsContract.write.removePermittedAddress(pkpTokenId, ethAddress);
+            const bytesIpfsCID = `0x${Buffer.from(
+                bs58.decode(ipfsCID)
+            ).toString("hex")}`;
+            await litContracts.connect();
+            const response =
+                await litContracts.pkpPermissionsContract.write.removePermittedAction(
+                    pkpTokenId,
+                    bytesIpfsCID
+                );
+            return response;
+        } catch (error) {
+            throw new Error("Failed to remove permitted action");
+        }
     }
 
     async checkPermits(pkpTokenId: string) {
