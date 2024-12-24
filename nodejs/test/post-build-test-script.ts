@@ -267,6 +267,22 @@ async function executeSolanaAgentKit() {
     console.log(agentKitResponse);
 }
 
+async function removePermittedAction() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    await litWrapper.removePermittedAction(
+        response?.pkpInfo?.tokenId!,
+        "QmQ567ZLdXDWcxXFQ4KaV"
+    );
+}
+
+async function removeAuthAddress() {
+    const response = await litWrapper.createSolanaWK(ETHEREUM_PRIVATE_KEY);
+    await litWrapper.removeAuthAddress(
+        response?.pkpInfo?.tokenId!,
+        "0xE1B12f284654c080145Fed0f991D1C3B8d493A06"
+    );
+}
+
 // actionTester();
 // generateSolanaWallet();
 // sendSolTxn();
@@ -278,4 +294,6 @@ async function executeSolanaAgentKit() {
 // checkAuthMethods()
 // addLitActionAsAuthMethod()
 // addAuthAddress()
-executeSolanaAgentKit()
+// executeSolanaAgentKit()
+// removePermittedAction();
+// removeAuthAddress();

@@ -62,6 +62,8 @@ class LitWrapper {
         this.wk = null;
     }
 
+    // ------------------------------- AUTH FUNCTIONS -------------------------------
+
     async createPKP(userPrivateKey: string) {
         try {
             const ethersWallet = new ethers.Wallet(
@@ -145,38 +147,24 @@ class LitWrapper {
         return response;
     }
 
-    async uploadViaPinata({
-        pinataAPIKey,
-        litActionCode,
-    }: UploadViaPinataParams) {
-        const formData = new FormData();
-
-        const file = new File([litActionCode], "Action.txt", {
-            type: "text/plain",
-        });
-        const pinataMetadata = JSON.stringify({
-            name: "EVM-SWAP",
-        });
-        const pinataOptions = JSON.stringify({
-            cidVersion: 0,
+    async removePermittedAction(pkpTokenId: string, ipfsCID: string) {
+        const litContracts = new LitContracts({
+            network: this.litNetwork,
+            debug: false,
         });
 
-        formData.append("file", file);
-        formData.append("pinataMetadata", pinataMetadata);
-        formData.append("pinataOptions", pinataOptions);
+        const bytesIpfsCID = `0x${Buffer.from(bs58.decode(ipfsCID)).toString("hex")}`
+        await litContracts.connect();
+        await litContracts.pkpPermissionsContract.write.removePermittedAction(pkpTokenId, bytesIpfsCID);
+    }
 
-        const request = await fetch(
-            "https://api.pinata.cloud/pinning/pinFileToIPFS",
-            {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${pinataAPIKey}`,
-                },
-                body: formData,
-            }
-        );
-        const response = await request.json();
-        return response.IpfsHash;
+    async removeAuthAddress(pkpTokenId: string, ethAddress: string) {
+        const litContracts = new LitContracts({
+            network: this.litNetwork,
+            debug: false,
+        });
+        await litContracts.connect();
+        await litContracts.pkpPermissionsContract.write.removePermittedAddress(pkpTokenId, ethAddress);
     }
 
     async checkPermits(pkpTokenId: string) {
@@ -207,6 +195,8 @@ class LitWrapper {
         console.log(results);
         return results;
     }
+
+    // ------------------------------- UTILITY FUNCTIONS -------------------------------
 
     async createPKPWithLitAction({
         userPrivateKey,
@@ -312,6 +302,84 @@ class LitWrapper {
         }
     }
 
+    async getDecipheringDetails({
+        userPrivateKey,
+        pkp,
+        wk,
+    }: GetDecipheringDetailsParams) {
+        if (pkp) {
+            this.pkp = pkp;
+        }
+        if (wk) {
+            this.wk = wk;
+        }
+        if (!this.pkp) {
+            throw new Error("PKP not initialized");
+        }
+        if (!this.wk) {
+            throw new Error("WK not initialized");
+        }
+        try {
+            this.litNodeClient.connect();
+            const {
+                ciphertext: solanaCipherText,
+                dataToEncryptHash: solanaDataToEncryptHash,
+            } = await getEncryptedKey({
+                pkpSessionSigs: await this.getSessionSigs(
+                    userPrivateKey,
+                    this.pkp.publicKey,
+                    "pkp"
+                ),
+                litNodeClient: this.litNodeClient,
+                id: wk.id,
+            });
+            return {
+                ciphertext: solanaCipherText,
+                dataToEncryptHash: solanaDataToEncryptHash,
+            };
+        } catch (error) {
+            throw new Error("Failed to get deciphering details");
+        } finally {
+            this.litNodeClient?.disconnect();
+        }
+    }
+
+    async uploadViaPinata({
+        pinataAPIKey,
+        litActionCode,
+    }: UploadViaPinataParams) {
+        const formData = new FormData();
+
+        const file = new File([litActionCode], "Action.txt", {
+            type: "text/plain",
+        });
+        const pinataMetadata = JSON.stringify({
+            name: "EVM-SWAP",
+        });
+        const pinataOptions = JSON.stringify({
+            cidVersion: 0,
+        });
+
+        formData.append("file", file);
+        formData.append("pinataMetadata", pinataMetadata);
+        formData.append("pinataOptions", pinataOptions);
+
+        const request = await fetch(
+            "https://api.pinata.cloud/pinning/pinFileToIPFS",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${pinataAPIKey}`,
+                },
+                body: formData,
+            }
+        );
+        const response = await request.json();
+        return response.IpfsHash;
+    }
+
+    // ------------------------------- SOLANA FUNCTIONS -------------------------------
+
     async createSolanaWK(userPrivateKey: string) {
         try {
             if (!this.pkp) {
@@ -350,48 +418,6 @@ class LitWrapper {
             return response;
         } catch (error) {
             console.error;
-        } finally {
-            this.litNodeClient?.disconnect();
-        }
-    }
-
-    async getDecipheringDetails({
-        userPrivateKey,
-        pkp,
-        wk,
-    }: GetDecipheringDetailsParams) {
-        if (pkp) {
-            this.pkp = pkp;
-        }
-        if (wk) {
-            this.wk = wk;
-        }
-        if (!this.pkp) {
-            throw new Error("PKP not initialized");
-        }
-        if (!this.wk) {
-            throw new Error("WK not initialized");
-        }
-        try {
-            this.litNodeClient.connect();
-            const {
-                ciphertext: solanaCipherText,
-                dataToEncryptHash: solanaDataToEncryptHash,
-            } = await getEncryptedKey({
-                pkpSessionSigs: await this.getSessionSigs(
-                    userPrivateKey,
-                    this.pkp.publicKey,
-                    "pkp"
-                ),
-                litNodeClient: this.litNodeClient,
-                id: wk.id,
-            });
-            return {
-                ciphertext: solanaCipherText,
-                dataToEncryptHash: solanaDataToEncryptHash,
-            };
-        } catch (error) {
-            throw new Error("Failed to get deciphering details");
         } finally {
             this.litNodeClient?.disconnect();
         }
